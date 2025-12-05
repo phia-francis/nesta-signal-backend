@@ -6,11 +6,20 @@
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .btn-check:checked + label { background-color: #4f46e5; color: white; border-color: #4f46e5; }
+        
+        /* Slider Styling */
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; background: #4f46e5; cursor: pointer; border-radius: 50%;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body class="bg-slate-100 h-screen font-sans overflow-hidden">
@@ -20,39 +29,51 @@
         <div class="flex-1 flex flex-col gap-4">
             
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-5">
                     <h2 class="font-bold text-slate-700 flex items-center gap-2">
                         <span class="text-xl">🎛️</span> Scout Controls
                     </h2>
-                    <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-mono">Mode: Auto-Scan</span>
                 </div>
 
-                <div class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Sector</span>
-                        <div class="flex flex-wrap gap-2 mt-2" id="sector-filters">
-                            </div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Number of Signals</label>
+                            <span id="slider-val" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">3</span>
+                        </div>
+                        <input type="range" id="signal-count" min="1" max="10" value="3" 
+                            class="range-slider w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                            oninput="document.getElementById('slider-val').innerText = this.value">
+                        <div class="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
+                            <span>1</span><span>5</span><span>10</span>
+                        </div>
                     </div>
+
                     <div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lens</span>
-                        <div class="flex flex-wrap gap-2 mt-2" id="lens-filters">
-                            </div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mission Focus</label>
+                        <select id="mission-select" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+                            <option value="All Missions">Auto: All Missions</option>
+                            <option value="A Fairer Start">A Fairer Start</option>
+                            <option value="A Healthy Life">A Healthy Life</option>
+                            <option value="A Sustainable Future">A Sustainable Future</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="mt-6 flex gap-3">
-                    <input type="text" id="manual-input" placeholder="Optional: Type custom context..." 
-                        class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <button onclick="runScan()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
-                        <span>🚀</span> Launch Scan
+                <div class="flex gap-3">
+                    <input type="text" id="manual-input" placeholder="Optional: Specific topic (e.g. 'AI in Education')" 
+                        class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                    <button onclick="runScan()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95">
+                        <span>🚀</span> Launch
                     </button>
                 </div>
             </div>
 
-            <div id="chat-box" class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 overflow-y-auto space-y-4 relative">
+            <div id="chat-box" class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 overflow-y-auto space-y-4 relative scroll-smooth">
                 <div class="text-center text-slate-400 mt-10">
                     <p class="text-4xl mb-2">📡</p>
-                    <p>Select filters above and click <b>Launch Scan</b>.</p>
+                    <p>Configure parameters and click <b>Launch</b>.</p>
                 </div>
             </div>
         </div>
@@ -60,7 +81,7 @@
         <div class="w-96 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-inner">
             <div class="bg-slate-100 p-4 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="font-bold text-slate-700">💾 Signal Vault</h3>
-                <button onclick="refreshDatabase()" class="text-xs text-slate-500 hover:text-indigo-600">Refresh</button>
+                <button onclick="refreshDatabase()" class="text-xs text-slate-500 hover:text-indigo-600 transition-colors">Refresh</button>
             </div>
             <div id="db-list" class="flex-1 overflow-y-auto p-3 space-y-3">
                 </div>
@@ -70,114 +91,131 @@
 
     <script>
         // --- CONFIGURATION ---
-        const API_BASE = "https://nesta-signal-backend.onrender.com"; // e.g. https://nesta-backend.onrender.com
-        
-        // --- DATA FOR BUTTONS ---
-        const SECTORS = ["AI & Tech", "Climate", "Education", "Health", "Democracy"];
-        const LENSES = ["Weak Signal", "Risks", "Black Market", "Weird/Outlier"];
+        // ⚠️ REPLACE THIS WITH YOUR RENDER URL (Must end in /api/chat NO TRAILING SLASH)
+        const API_BASE = "https://nesta-signal-backend.onrender.com/api/chat"; 
 
-        // --- INIT ---
-        window.onload = () => {
-            renderFilters();
-            refreshDatabase();
-        };
+        // Load DB on startup
+        window.onload = refreshDatabase;
 
-        // 1. Render Control Buttons
-        function renderFilters() {
-            const createBtn = (id, text, group) => `
-                <input type="radio" name="${group}" id="${id}" value="${text}" class="hidden btn-check peer">
-                <label for="${id}" class="cursor-pointer px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors select-none">
-                    ${text}
-                </label>
-            `;
-
-            document.getElementById('sector-filters').innerHTML = SECTORS.map((s, i) => createBtn(`s-${i}`, s, 'sector')).join('');
-            document.getElementById('lens-filters').innerHTML = LENSES.map((l, i) => createBtn(`l-${i}`, l, 'lens')).join('');
-        }
-
-        // 2. Run Scan Logic
+        // --- MAIN LOGIC ---
         async function runScan() {
             const chatBox = document.getElementById('chat-box');
-            const manualText = document.getElementById('manual-input').value;
+            const topic = document.getElementById('manual-input').value.trim();
+            const count = document.getElementById('signal-count').value;
+            const mission = document.getElementById('mission-select').value;
+
+            // 1. Construct Prompt for Backend
+            let prompt = `Find ${count} distinct innovation signals`;
             
-            // Get selected buttons
-            const sector = document.querySelector('input[name="sector"]:checked')?.value;
-            const lens = document.querySelector('input[name="lens"]:checked')?.value;
+            if (topic) prompt += ` related to '${topic}'`;
+            else prompt += ` (perform a broad horizon scan)`;
+            
+            if (mission !== "All Missions") prompt += ` with a specific focus on the '${mission}' mission`;
+            else prompt += ` across any relevant mission`;
 
-            // Construct Prompt
-            let prompt = "";
-            if (manualText) {
-                prompt = manualText;
-            } else if (sector || lens) {
-                prompt = `Find innovation signals regarding ${sector || 'general topics'} using the ${lens || 'general'} lens.`;
-            } else {
-                alert("Please select a filter or type a request!");
-                return;
-            }
+            prompt += ". Use the display_signal_card tool for each one found.";
 
-            // User UI Feedback
+            // 2. UI Feedback (User Bubble)
             chatBox.innerHTML += `
                 <div class="flex justify-end animate-fade-in">
-                    <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-2xl rounded-tr-none text-sm mb-2 max-w-[85%]">
-                        Searching: <b>${sector || 'Custom'}</b> + <b>${lens || 'General'}</b><br>
-                        <span class="text-xs opacity-70">"${prompt}"</span>
+                    <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-2xl rounded-tr-none text-sm mb-2 max-w-[85%] border border-indigo-200">
+                        <div class="font-bold text-xs uppercase opacity-70 mb-1">Scanning Parameters</div>
+                        <div>Target: ${count} Signals</div>
+                        <div>Mission: ${mission}</div>
+                        ${topic ? `<div>Topic: "${topic}"</div>` : ''}
                     </div>
                 </div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Loading State
+            // 3. Loading State
             const loaderId = `load-${Date.now()}`;
-            chatBox.innerHTML += `<div id="${loaderId}" class="text-slate-400 text-sm italic ml-2">Scanning horizon...</div>`;
+            chatBox.innerHTML += `
+                <div id="${loaderId}" class="flex gap-2 items-center text-slate-400 text-sm italic ml-2 animate-pulse">
+                    <span class="h-2 w-2 bg-slate-400 rounded-full"></span>
+                    Scanning horizon (this may take a moment)...
+                </div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
+                // 4. API Call
                 const res = await fetch(`${API_BASE}/api/chat`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ message: prompt })
                 });
+                
+                if (!res.ok) throw new Error("Backend connection failed");
+                
                 const data = await res.json();
                 
-                document.getElementById(loaderId).remove();
+                // Remove loader
+                const loader = document.getElementById(loaderId);
+                if (loader) loader.remove();
 
-                if (data.ui_type === 'signal_card') {
+                // 5. Render Response
+                if (data.ui_type === 'signal_list') {
+                    // Handle Multiple Signals
+                    data.items.forEach(signal => renderCard(signal));
+                    // Add a small summary text at the end
+                    renderText(`✅ I found ${data.items.length} signals for you.`);
+                } 
+                else if (data.ui_type === 'signal_card') {
+                    // Handle Single Signal
                     renderCard(data);
-                } else {
+                } 
+                else {
+                    // Handle Plain Text
                     renderText(data.content);
                 }
+
             } catch (err) {
                 console.error(err);
-                document.getElementById(loaderId).innerText = "Error connecting to backend.";
+                const loader = document.getElementById(loaderId);
+                if (loader) loader.innerHTML = `<span class="text-red-500 not-italic">❌ Error: Could not reach Signal Scout backend. Check your URL.</span>`;
             }
         }
 
-        // 3. Render Functions
+        // --- RENDER HELPERS ---
+        
         function renderText(text) {
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<div class="bg-white border border-slate-100 p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">${text}</div>`;
+            chatBox.innerHTML += `
+                <div class="flex animate-fade-in mb-4">
+                    <div class="bg-white border border-slate-100 p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">
+                        ${text}
+                    </div>
+                </div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function renderCard(data) {
             const chatBox = document.getElementById('chat-box');
-            // Store data in a way button can access it (simple JSON stringify trick)
+            // Escape quotes for the onclick function
             const dataStr = JSON.stringify(data).replace(/"/g, '&quot;');
             
+            // Logic for score color
+            let scoreBadge = "bg-slate-100 text-slate-600";
+            if(data.score > 80) scoreBadge = "bg-green-100 text-green-700";
+            else if(data.score > 60) scoreBadge = "bg-yellow-100 text-yellow-700";
+
             const cardHTML = `
-                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-md max-w-sm hover:shadow-lg transition-shadow">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">${data.archetype}</span>
-                        <span class="font-mono text-xs font-bold text-slate-400">${data.score}/100</span>
-                    </div>
-                    <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">${data.title}</h3>
-                    <p class="text-sm text-slate-500 mb-4">${data.hook}</p>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="saveToDB(${dataStr})" class="bg-slate-900 text-white text-xs font-bold py-2 rounded hover:bg-slate-700 transition-colors flex items-center justify-center gap-1">
-                            <span>💾</span> Save
-                        </button>
-                        <a href="${data.final_url}" target="_blank" class="border border-slate-300 text-slate-600 text-xs font-bold py-2 rounded text-center hover:bg-slate-50">
-                            Source ↗
-                        </a>
+                <div class="animate-fade-in mb-4">
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-md max-w-md hover:shadow-lg transition-shadow border-l-4 border-l-indigo-500">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">${data.archetype || 'SIGNAL'}</span>
+                            <span class="font-mono text-xs font-bold ${scoreBadge} px-2 py-0.5 rounded">Score: ${data.score}</span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-lg leading-tight mb-2">${data.title}</h3>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">${data.hook}</p>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="saveToDB(${dataStr})" class="bg-slate-800 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 group">
+                                <span>🔖</span> <span class="group-hover:text-white">Save</span>
+                            </button>
+                            <a href="${data.final_url}" target="_blank" class="border border-slate-300 text-slate-600 text-xs font-bold py-2.5 rounded-lg text-center hover:bg-slate-50 transition-colors flex items-center justify-center gap-1">
+                                Source <span class="text-[10px]">↗</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
@@ -185,8 +223,11 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // 4. Database Interactions
+        // --- DATABASE FUNCTIONS ---
+
         async function saveToDB(data) {
+            // Optimistic UI update (optional, but feels faster)
+            // But we will stick to waiting for server confirmation for safety
             try {
                 const res = await fetch(`${API_BASE}/api/save`, {
                     method: 'POST',
@@ -199,11 +240,19 @@
                         url: data.final_url
                     })
                 });
-                const result = await res.json();
-                refreshDatabase(); // Update sidebar immediately
-                alert("Saved to Vault!");
+                
+                if(res.ok) {
+                    refreshDatabase(); // Update sidebar
+                    
+                    // Show a tiny toast notification
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm shadow-xl animate-fade-in z-50';
+                    toast.innerHTML = '✅ Saved to Vault';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 2000);
+                }
             } catch (err) {
-                alert("Failed to save.");
+                alert("Failed to save signal.");
             }
         }
 
@@ -214,20 +263,25 @@
                 const list = document.getElementById('db-list');
                 
                 if(items.length === 0) {
-                    list.innerHTML = `<div class="text-center text-xs text-slate-400 mt-10">Vault is empty.</div>`;
+                    list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-slate-400">
+                        <span class="text-2xl mb-2">📭</span>
+                        <span class="text-xs">Vault is empty</span>
+                    </div>`;
                     return;
                 }
 
                 list.innerHTML = items.map(item => `
-                    <div class="bg-white p-3 rounded border border-slate-100 shadow-sm relative group">
-                        <div class="text-[10px] text-slate-400 font-bold mb-0.5 flex justify-between">
-                            <span>${item.archetype}</span>
-                            <span class="text-indigo-500">${item.score}</span>
+                    <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm relative group hover:border-indigo-200 transition-colors">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">${item.archetype}</span>
+                            <span class="text-[10px] font-mono text-indigo-600 bg-indigo-50 px-1.5 rounded">${item.score}</span>
                         </div>
-                        <div class="font-bold text-slate-700 text-sm leading-snug hover:text-indigo-600">
-                            <a href="${item.url}" target="_blank">${item.title}</a>
+                        <div class="font-bold text-slate-700 text-sm leading-snug pr-4">
+                            <a href="${item.url}" target="_blank" class="hover:underline decoration-indigo-300 underline-offset-2">${item.title}</a>
                         </div>
-                        <button onclick="deleteSignal(${item.id})" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs">✖</button>
+                        <button onclick="deleteSignal(${item.id})" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all p-1" title="Delete">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
                 `).join('');
             } catch (err) {
@@ -236,7 +290,7 @@
         }
 
         async function deleteSignal(id) {
-            if(!confirm("Remove from vault?")) return;
+            if(!confirm("Are you sure you want to remove this signal?")) return;
             await fetch(`${API_BASE}/api/saved/${id}`, { method: 'DELETE' });
             refreshDatabase();
         }
