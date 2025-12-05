@@ -12,7 +12,12 @@ from dotenv import load_dotenv
 # --- SETUP ---
 load_dotenv()
 ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_6AnFZkW7f6Jhns774D9GNWXr")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ✅ FIX: Explicitly enforce v2 header to fix the 400 Error
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    default_headers={"OpenAI-Beta": "assistants=v2"}
+)
 
 app = FastAPI()
 
@@ -102,32 +107,55 @@ async def chat_endpoint(req: ChatRequest):
     try:
         print(f"User Query: {req.message}")
         
+        # 1. Create Thread & Run (v2 compatible)
         run = await asyncio.to_thread(
             client.beta.threads.create_and_run,
             assistant_id=ASSISTANT_ID,
             thread={"messages": [{"role": "user", "content": req.message}]}
         )
 
+        # 2. Poll Loop
         while True:
             run_status = await asyncio.to_thread(
                 client.beta.threads.runs.retrieve, thread_id=run.thread_id, run_id=run.id
             )
 
+            # CASE A: FUNCTION CALL (We need to submit outputs in v2)
             if run_status.status == 'requires_action':
                 tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
                 
-                # COLLECT ALL SIGNALS (Fix for slider)
+                # Collect found signals
                 signals_found = []
+                tool_outputs = []
+
                 for tool in tool_calls:
                     if tool.function.name == "display_signal_card":
+                        # Parse args
                         args = json.loads(tool.function.arguments)
                         processed_card = craft_widget_response(args)
                         signals_found.append(processed_card)
+                        
+                        # Add to outputs so we can close the loop with OpenAI
+                        tool_outputs.append({
+                            "tool_call_id": tool.id,
+                            "output": json.dumps({"status": "displayed"})
+                        })
+
+                # In v2, we MUST submit the tool outputs to finish the run
+                if tool_outputs:
+                    await asyncio.to_thread(
+                        client.beta.threads.runs.submit_tool_outputs,
+                        thread_id=run.thread_id,
+                        run_id=run.id,
+                        tool_outputs=tool_outputs
+                    )
                 
-                # Return list of signals
+                # If we found signals, we can return them immediately to the UI
+                # (The run continues in the background on OpenAI's side, but we have what we need)
                 if signals_found:
                     return {"ui_type": "signal_list", "items": signals_found}
                         
+            # CASE B: COMPLETED (Text Only)
             if run_status.status == 'completed':
                 messages = await asyncio.to_thread(
                     client.beta.threads.messages.list, thread_id=run.thread_id
@@ -135,11 +163,13 @@ async def chat_endpoint(req: ChatRequest):
                 text = messages.data[0].content[0].text.value
                 return {"ui_type": "text", "content": text}
             
+            # CASE C: ERRORS
             if run_status.status in ['failed', 'cancelled', 'expired']:
-                return {"ui_type": "text", "content": "Error: Run failed."}
+                print(f"Run Error: {run_status.last_error}")
+                return {"ui_type": "text", "content": "I encountered an error processing that signal."}
 
             await asyncio.sleep(1)
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Critical Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
