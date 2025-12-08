@@ -158,10 +158,13 @@
     </div>
 
     <script>
+        // ✅ CONFIGURE URL
         const API_BASE = "https://nesta-signal-backend.onrender.com"; 
+        
         let currentSignals = [];
 
         window.onload = async () => {
+            // Fetch Sheet URL from backend to populate link
             try {
                 const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.json());
                 if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
