@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import random
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,11 +17,14 @@ ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_6AnFZkW7f6Jhns774D9GNWXr")
 SHEET_ID = os.getenv("SHEET_ID")
 SHEET_URL = os.getenv("SHEET_URL", "#")
 
-# GOOGLE AUTH
+# --- GOOGLE AUTH HELPER ---
 def get_google_sheet():
     """Authenticates with Google and returns the Sheet object."""
     try:
-        # Load JSON from Environment Variable
+        if not os.getenv("GOOGLE_CREDENTIALS") or not SHEET_ID:
+            print("⚠️ Missing Google Credentials or Sheet ID in Environment Variables.")
+            return None
+            
         json_creds = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -83,27 +86,30 @@ def craft_widget_response(tool_args):
 
 @app.get("/api/config")
 def get_config():
-    """Returns public config like the Sheet URL."""
+    """Returns public config like the Sheet URL for the frontend."""
     return {"sheet_url": SHEET_URL}
 
 @app.get("/api/saved")
 def get_saved_signals():
+    """Fetches saved signals from Google Sheets."""
     try:
         sheet = get_google_sheet()
         if not sheet:
-            raise HTTPException(status_code=500, detail="Could not connect to Google Sheets")
+            # Fallback for dev/testing if no sheet connected
+            return []
         
         # Get all records as list of dicts
         records = sheet.get_all_records()
         
-        # Reverse to show newest first (assuming append adds to bottom)
+        # Reverse to show newest first
         return records[::-1]
     except Exception as e:
         print(f"Read Error: {e}")
-        return [] # Return empty list on failure rather than crashing UI
+        return [] 
 
 @app.post("/api/save")
 def save_signal(signal: SaveSignalRequest):
+    """Saves a single signal to Google Sheets."""
     try:
         sheet = get_google_sheet()
         if not sheet:
@@ -131,14 +137,13 @@ def save_signal(signal: SaveSignalRequest):
 
 @app.delete("/api/saved/{signal_id}")
 def delete_signal(signal_id: int):
-    # NOTE: Deleting from Sheets via API by index is risky if the sheet changes.
-    # We will disable the delete button in UI and tell user to use the Sheet.
+    # Deleting via index in Sheets is risky. We rely on the Sheet for management.
     return {"status": "ignored", "message": "Please delete directly from Google Sheets"}
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
-        print(f"User Query: {req.message} | Filters: {req.time_filter}, {req.source_types}, TechMode: {req.tech_mode}")
+        print(f"Query: {req.message} | Filters: Time={req.time_filter}, Tech={req.tech_mode}, Sources={req.source_types}")
         
         # 1. Deduping (Fetch last 50 titles from Sheet)
         existing_titles = []
@@ -147,25 +152,29 @@ async def chat_endpoint(req: ChatRequest):
             if sheet:
                 # Fetch only column A (Titles) to save bandwidth
                 titles_col = sheet.col_values(1)
-                existing_titles = titles_col[-50:] # Last 50
+                existing_titles = titles_col[-50:] 
         except Exception: pass
 
         # 2. PROMPT CONSTRUCTION
         prompt = req.message
         
         if req.tech_mode:
-            prompt += "\n\nCONSTRAINT: This is a TECHNICAL HORIZON SCAN. Focus ONLY on emerging hardware, software, materials, or biotech."
+            prompt += "\n\nCONSTRAINT: This is a TECHNICAL HORIZON SCAN. Focus ONLY on emerging hardware, software, materials, or biotech. Ignore purely cultural trends."
 
         if req.source_types:
             sources_str = ", ".join(req.source_types)
-            prompt += f"\n\nCONSTRAINT: Prioritize findings from: {sources_str}."
+            prompt += f"\n\nCONSTRAINT: Prioritize findings from these specific source types: {sources_str}."
 
-        prompt += f"\n\nCONSTRAINT: Time Horizon is '{req.time_filter}'."
+        prompt += f"\n\nCONSTRAINT: Time Horizon is '{req.time_filter}'. Ensure signals are recent."
 
         prompt += f"\n\n[System Note: Random Seed {random.randint(1000, 9999)}]"
+        
         if existing_titles:
-            blocklist_str = ", ".join([f'"{t}"' for t in existing_titles if t != "Title"])
-            prompt += f"\n\nIMPORTANT: Do NOT return these titles: {blocklist_str}"
+            # Filter out the header "Title" if present
+            clean_titles = [t for t in existing_titles if t.lower() != "title"]
+            if clean_titles:
+                blocklist_str = ", ".join([f'"{t}"' for t in clean_titles])
+                prompt += f"\n\nIMPORTANT: Do NOT return these titles (user has already saved them): {blocklist_str}"
 
         # 3. RUN ASSISTANT
         run = await asyncio.to_thread(
@@ -188,6 +197,10 @@ async def chat_endpoint(req: ChatRequest):
                     if tool.function.name == "display_signal_card":
                         args = json.loads(tool.function.arguments)
                         processed_card = craft_widget_response(args)
+                        
+                        # Note: If you want auto-save, uncomment the line below:
+                        # save_signal(SaveSignalRequest(**processed_card))
+                        
                         signals_found.append(processed_card)
                         tool_outputs.append({
                             "tool_call_id": tool.id,
@@ -209,8 +222,12 @@ async def chat_endpoint(req: ChatRequest):
                 messages = await asyncio.to_thread(
                     client.beta.threads.messages.list, thread_id=run.thread_id
                 )
-                text = messages.data[0].content[0].text.value
-                return {"ui_type": "text", "content": text}
+                # Handle case where AI talks but calls no tools
+                if messages.data:
+                    text = messages.data[0].content[0].text.value
+                    return {"ui_type": "text", "content": text}
+                else:
+                    return {"ui_type": "text", "content": "Scan complete, but no signals generated."}
             
             if run_status.status in ['failed', 'cancelled', 'expired']:
                 return {"ui_type": "text", "content": "I encountered an error processing that signal."}
