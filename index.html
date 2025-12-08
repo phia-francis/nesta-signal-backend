@@ -6,54 +6,41 @@
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* NESTA BRAND GUIDELINES - CONTRAST PAIRING (Purple/Green/Aqua) */
+        /* NESTA BRAND GUIDELINES */
         :root {
-            /* Palette from Page 8 */
-            --nesta-purple: #9A1BBE;    /* Pantone 2592 */
-            --nesta-green: #18A48C;     /* Pantone 7473 */
-            --nesta-aqua: #97D9E3;      /* Pantone 304 */
-            --nesta-navy: #0F294A;      /* Pantone 2767 */
+            --nesta-purple: #9A1BBE;
+            --nesta-green: #18A48C;
+            --nesta-aqua: #97D9E3;
+            --nesta-navy: #0F294A;
             --nesta-black: #000000;
             --nesta-white: #FFFFFF;
         }
 
-        /* Typography: Century Gothic (System Typeface) [cite: 264] */
         body { 
             font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
             background-color: var(--nesta-white);
             color: var(--nesta-black);
         }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: var(--nesta-navy); }
         ::-webkit-scrollbar-thumb:hover { background: var(--nesta-purple); }
         
-        /* Slider Styling - Using Purple Hero [cite: 198] */
         .range-slider { -webkit-appearance: none; background: transparent; }
         .range-slider::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
             width: 24px; height: 24px; 
             background: var(--nesta-purple); 
-            cursor: pointer; 
-            border: none;
-            border-radius: 0%; /* Sharp corners */
-            margin-top: -10px;
+            cursor: pointer; border: none; border-radius: 0%; margin-top: -10px;
         }
         .range-slider::-webkit-slider-runnable-track {
             width: 100%; height: 4px; background: #ddd; border: none;
         }
 
-        /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        
-        /* Utility: Nesta Borders (Flat, No Shadows) [cite: 366] */
         .border-nesta { border: 3px solid var(--nesta-black); }
-        
-        /* Interactive States */
-        .hover-lift:hover { transform: translateY(-2px); }
     </style>
 </head>
 <body class="h-screen overflow-hidden selection:bg-[#97D9E3] selection:text-black">
@@ -73,7 +60,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
-                    
                     <div>
                         <div class="flex justify-between mb-4 items-center">
                             <label class="text-sm font-bold uppercase tracking-widest text-[#0F294A]">Signal Volume</label>
@@ -106,7 +92,6 @@
                 <div class="flex gap-0 border-nesta">
                     <input type="text" id="manual-input" placeholder="Topic (e.g., 'Generative AI')" 
                         class="flex-1 bg-white px-5 py-4 text-base font-bold placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:bg-[#f0f9fa] border-none rounded-none text-black">
-                    
                     <button onclick="runScan()" class="bg-[#9A1BBE] text-white hover:bg-[#0F294A] px-10 py-4 font-bold uppercase tracking-wider transition-colors rounded-none whitespace-nowrap">
                         Launch Scan
                     </button>
@@ -140,12 +125,7 @@
     </div>
 
     <script>
-        // ==========================================
-        // ✅ YOUR RENDER URL
-        // ==========================================
         const API_BASE = "https://nesta-signal-backend.onrender.com"; 
-        // ==========================================
-
         let currentSignals = [];
 
         window.onload = refreshDatabase;
@@ -161,13 +141,10 @@
             let prompt = `Find ${count} distinct innovation signals`;
             if (topic) prompt += ` related to '${topic}'`;
             else prompt += ` (perform a broad horizon scan)`;
-            
             if (mission !== "All Missions") prompt += ` with a specific focus on the '${mission}' mission`;
             else prompt += ` across any relevant mission`;
-
             prompt += ". Use the display_signal_card tool for each one.";
 
-            // UI Feedback - Using Navy + Aqua Accent
             chatBox.innerHTML += `
                 <div class="flex justify-end animate-fade-in mb-8">
                     <div class="bg-[#0F294A] text-white p-6 border-l-8 border-[#97D9E3] max-w-[80%]">
@@ -182,7 +159,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const loaderId = `load-${Date.now()}`;
-            // Loading Spinner: Purple
             chatBox.innerHTML += `
                 <div id="${loaderId}" class="flex gap-4 items-center text-[#9A1BBE] text-sm ml-2 mt-4 font-bold uppercase animate-pulse">
                     <div class="w-4 h-4 bg-[#9A1BBE]"></div> Scouting horizon...
@@ -195,10 +171,8 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ message: prompt })
                 });
-                
                 if (!res.ok) throw new Error(`Server Error: ${res.status}`);
                 const data = await res.json();
-                
                 document.getElementById(loaderId).remove();
 
                 if (data.ui_type === 'signal_list') {
@@ -213,14 +187,12 @@
             } catch (err) {
                 console.error(err);
                 const loader = document.getElementById(loaderId);
-                // Error Red: Pantone 192 (Approx from PDF) [cite: 156]
                 if(loader) loader.innerHTML = `<div class="bg-[#EB003B] text-white p-4 font-bold">⚠️ ERROR: ${err.message}</div>`;
             }
         }
 
         function renderSystemMessage(html) {
             const chatBox = document.getElementById('chat-box');
-            // Using "Sand" color background for system text [cite: 166]
             chatBox.innerHTML += `
                 <div class="flex animate-fade-in mb-6">
                     <div class="bg-[#D2C9C0] p-4 text-sm font-bold text-black max-w-[90%] uppercase tracking-wide border-l-4 border-black">
@@ -235,21 +207,18 @@
             const idx = currentSignals.length - 1;
             const chatBox = document.getElementById('chat-box');
             
-            // Score Colors: Green for high (Supporting), Aqua for mid (Accent) [cite: 147, 150]
             let scoreClass = "bg-gray-100 text-black";
-            if(data.score >= 80) scoreClass = "bg-[#18A48C] text-white"; // Green
-            else if(data.score >= 60) scoreClass = "bg-[#97D9E3] text-black"; // Aqua
+            if(data.score >= 80) scoreClass = "bg-[#18A48C] text-white"; 
+            else if(data.score >= 60) scoreClass = "bg-[#97D9E3] text-black";
 
-            const missionHtml = data.mission 
-                ? `<span class="bg-[#0F294A] text-white text-[10px] px-2 py-1 font-bold uppercase tracking-widest">${data.mission}</span>` 
-                : '';
+            const missionHtml = data.mission ? `<span class="bg-[#0F294A] text-white text-[10px] px-2 py-1 font-bold uppercase tracking-widest">${data.mission}</span>` : '';
+            const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[10px] px-2 py-1 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
 
-            let lensesHtml = '';
-            if (data.lenses) {
-                lensesHtml = data.lenses.split(',').map(tag => 
-                    `<span class="border border-black text-black text-[10px] px-2 py-1 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`
-                ).join('');
-            }
+            // ✅ NEW: Score Breakdown Tooltip Logic
+            // If the AI didn't return values (older signals), default to 0
+            const sEvo = data.score_evocativeness || 0;
+            const sNov = data.score_novelty || 0;
+            const sEvi = data.score_evidence || 0;
 
             const cardHTML = `
                 <div class="animate-fade-in group mb-8">
@@ -257,9 +226,18 @@
                         
                         <div class="flex justify-between items-start mb-5 border-b border-gray-200 pb-4">
                             <span class="text-[#9A1BBE] font-bold text-xs uppercase tracking-widest">${data.archetype || 'SIGNAL'}</span>
-                            <div class="font-mono text-sm font-bold ${scoreClass} px-3 py-1">
-                                ⚡ ${data.score}/100
+                            
+                            <div class="relative group/score cursor-help">
+                                <div class="font-mono text-sm font-bold ${scoreClass} px-3 py-1">
+                                    ⚡ ${data.score}/100
+                                </div>
+                                <div class="absolute bottom-full right-0 mb-2 w-48 bg-[#0F294A] text-white p-3 text-[10px] uppercase font-bold tracking-widest hidden group-hover/score:block border-2 border-[#97D9E3] z-50 shadow-lg">
+                                    <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Evocative</span> <span>${sEvo}/10</span></div>
+                                    <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Novelty</span> <span>${sNov}/10</span></div>
+                                    <div class="flex justify-between"><span class="text-[#97D9E3]">Evidence</span> <span>${sEvi}/10</span></div>
+                                </div>
                             </div>
+
                         </div>
 
                         <h3 class="font-bold text-black text-2xl leading-tight mb-4 group-hover:text-[#9A1BBE] transition-colors">${data.title}</h3>
@@ -299,11 +277,14 @@
                         hook: data.hook,
                         url: data.final_url,
                         mission: data.mission || "",
-                        lenses: data.lenses || ""
+                        lenses: data.lenses || "",
+                        // ✅ PASSING NEW METRICS
+                        score_evocativeness: data.score_evocativeness || 0,
+                        score_novelty: data.score_novelty || 0,
+                        score_evidence: data.score_evidence || 0
                     })
                 });
                 if(res.ok) {
-                    // Success State: Green (Supporting Color) 
                     btn.className = "bg-[#18A48C] text-white text-xs font-bold py-4 cursor-default uppercase tracking-widest border-r border-gray-700";
                     btn.innerHTML = `SAVED`;
                     btn.removeAttribute("onclick");
