@@ -35,35 +35,50 @@ def get_google_sheet():
         print(f"Google Auth Error: {e}")
         return None
 
-# --- NEW: GOOGLE SEARCH HELPER ---
+# --- NEW: GOOGLE SEARCH HELPER (DEBUG VERSION) ---
 async def perform_google_search(query):
     """Performs a real Google Search to validate signals."""
     if not GOOGLE_SEARCH_KEY or not GOOGLE_SEARCH_CX:
-        return "Error: Search functionality not configured on server."
+        print("❌ CONFIG ERROR: Missing Google Search Keys")
+        return "System Error: Search is not configured. Proceed with internal knowledge but flag as unverified."
+    
+    print(f"🔍 Searching Google for: '{query}'...")
     
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
         "key": GOOGLE_SEARCH_KEY,
         "cx": GOOGLE_SEARCH_CX,
         "q": query,
-        "num": 3  # Fetch top 3 results to save quota
+        "num": 3
     }
     
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(url, params=params)
+            
+            # Debug: Print error if API fails
+            if resp.status_code != 200:
+                print(f"❌ Google API Error: {resp.text}")
+                return f"Search Failed: {resp.status_code}. Proceed with best estimate."
+
             data = resp.json()
             
             if "items" not in data:
-                return "No results found."
+                print("⚠️ No results found.")
+                return "No search results found. Use internal knowledge."
             
-            # Format results for the AI
+            # Format results
             results = []
             for item in data["items"]:
-                results.append(f"Title: {item['title']}\nLink: {item['link']}\nSnippet: {item['snippet']}")
-            return "\n\n".join(results)
+                results.append(f"Title: {item['title']}\nLink: {item['link']}\nSnippet: {item.get('snippet', '')}")
+            
+            output = "\n\n".join(results)
+            print("✅ Search Successful. Results found.")
+            return output
+
         except Exception as e:
-            return f"Search Error: {str(e)}"
+            print(f"❌ Exception during search: {e}")
+            return f"Search Exception: {str(e)}"
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
