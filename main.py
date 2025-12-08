@@ -1,20 +1,38 @@
 import os
 import json
-import sqlite3
 import asyncio
 import random
-from datetime import datetime, timedelta
-from contextlib import closing
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
+import gspread
+from google.oauth2.service_account import Credentials
 
 # --- SETUP ---
 load_dotenv()
 ASSISTANT_ID = os.getenv("ASSISTANT_ID", "asst_6AnFZkW7f6Jhns774D9GNWXr")
+SHEET_ID = os.getenv("SHEET_ID")
+SHEET_URL = os.getenv("SHEET_URL", "#")
+
+# GOOGLE AUTH
+def get_google_sheet():
+    """Authenticates with Google and returns the Sheet object."""
+    try:
+        # Load JSON from Environment Variable
+        json_creds = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds = Credentials.from_service_account_info(json_creds, scopes=scopes)
+        client = gspread.authorize(creds)
+        return client.open_by_key(SHEET_ID).sheet1
+    except Exception as e:
+        print(f"Google Auth Error: {e}")
+        return None
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
@@ -31,50 +49,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- DATABASE SETUP ---
-DB_FILE = "signals.db"
-
-def init_db():
-    with closing(sqlite3.connect(DB_FILE)) as conn:
-        with conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS saved_signals (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT,
-                    score INTEGER,
-                    archetype TEXT,
-                    hook TEXT,
-                    url TEXT,
-                    mission TEXT,
-                    lenses TEXT,
-                    score_evocativeness INTEGER DEFAULT 0,
-                    score_novelty INTEGER DEFAULT 0,
-                    score_evidence INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            # Auto-migration logic (same as before)
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA table_info(saved_signals)")
-            columns = [info[1] for info in cursor.fetchall()]
-            new_cols = {
-                "mission": "TEXT", "lenses": "TEXT",
-                "score_evocativeness": "INTEGER DEFAULT 0",
-                "score_novelty": "INTEGER DEFAULT 0",
-                "score_evidence": "INTEGER DEFAULT 0"
-            }
-            for col, dtype in new_cols.items():
-                if col not in columns:
-                    conn.execute(f"ALTER TABLE saved_signals ADD COLUMN {col} {dtype}")
-init_db()
-
 # --- DATA MODELS ---
 class ChatRequest(BaseModel):
     message: str
-    # ✅ NEW FILTER FIELDS
-    time_filter: str = "Past Year"     # e.g. "Past Month", "Past Year"
-    source_types: List[str] = []       # e.g. ["Academia", "VC Blogs"]
-    tech_mode: bool = False            # If True, focus strictly on technology
+    time_filter: str = "Past Year"
+    source_types: List[str] = []
+    tech_mode: bool = False
 
 class SaveSignalRequest(BaseModel):
     title: str
@@ -101,77 +81,90 @@ def craft_widget_response(tool_args):
 
 # --- ENDPOINTS ---
 
+@app.get("/api/config")
+def get_config():
+    """Returns public config like the Sheet URL."""
+    return {"sheet_url": SHEET_URL}
+
 @app.get("/api/saved")
 def get_saved_signals():
     try:
-        with closing(sqlite3.connect(DB_FILE)) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.execute("SELECT * FROM saved_signals ORDER BY id DESC")
-            return [dict(row) for row in cursor.fetchall()]
+        sheet = get_google_sheet()
+        if not sheet:
+            raise HTTPException(status_code=500, detail="Could not connect to Google Sheets")
+        
+        # Get all records as list of dicts
+        records = sheet.get_all_records()
+        
+        # Reverse to show newest first (assuming append adds to bottom)
+        return records[::-1]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Read Error: {e}")
+        return [] # Return empty list on failure rather than crashing UI
 
 @app.post("/api/save")
 def save_signal(signal: SaveSignalRequest):
     try:
-        with closing(sqlite3.connect(DB_FILE)) as conn:
-            with conn:
-                conn.execute(
-                    """INSERT INTO saved_signals 
-                       (title, score, archetype, hook, url, mission, lenses, 
-                        score_evocativeness, score_novelty, score_evidence) 
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (signal.title, signal.score, signal.archetype, signal.hook, signal.url, 
-                     signal.mission, signal.lenses, 
-                     signal.score_evocativeness, signal.score_novelty, signal.score_evidence)
-                )
+        sheet = get_google_sheet()
+        if not sheet:
+            raise HTTPException(status_code=500, detail="Could not connect to Google Sheets")
+        
+        # Row format: Title, Score, Archetype, Hook, URL, Mission, Lenses, Evo, Nov, Evi
+        row = [
+            signal.title,
+            signal.score,
+            signal.archetype,
+            signal.hook,
+            signal.url,
+            signal.mission,
+            signal.lenses,
+            signal.score_evocativeness,
+            signal.score_novelty,
+            signal.score_evidence
+        ]
+        
+        sheet.append_row(row)
         return {"status": "success"}
     except Exception as e:
+        print(f"Save Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/saved/{signal_id}")
 def delete_signal(signal_id: int):
-    try:
-        with closing(sqlite3.connect(DB_FILE)) as conn:
-            with conn:
-                conn.execute("DELETE FROM saved_signals WHERE id = ?", (signal_id,))
-        return {"status": "deleted"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # NOTE: Deleting from Sheets via API by index is risky if the sheet changes.
+    # We will disable the delete button in UI and tell user to use the Sheet.
+    return {"status": "ignored", "message": "Please delete directly from Google Sheets"}
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
         print(f"User Query: {req.message} | Filters: {req.time_filter}, {req.source_types}, TechMode: {req.tech_mode}")
         
-        # 1. Deduping
+        # 1. Deduping (Fetch last 50 titles from Sheet)
         existing_titles = []
         try:
-            with closing(sqlite3.connect(DB_FILE)) as conn:
-                cursor = conn.execute("SELECT title FROM saved_signals ORDER BY id DESC LIMIT 50")
-                existing_titles = [row[0] for row in cursor.fetchall()]
+            sheet = get_google_sheet()
+            if sheet:
+                # Fetch only column A (Titles) to save bandwidth
+                titles_col = sheet.col_values(1)
+                existing_titles = titles_col[-50:] # Last 50
         except Exception: pass
 
-        # 2. CONSTRUCT SOPHISTICATED PROMPT
+        # 2. PROMPT CONSTRUCTION
         prompt = req.message
         
-        # A. Tech Mode Injection
         if req.tech_mode:
-            prompt += "\n\nCONSTRAINT: This is a TECHNICAL HORIZON SCAN. Ignore social trends, policy ideas, or cultural shifts. Focus ONLY on emerging hardware, software, materials, or biotech breakthroughs."
+            prompt += "\n\nCONSTRAINT: This is a TECHNICAL HORIZON SCAN. Focus ONLY on emerging hardware, software, materials, or biotech."
 
-        # B. Source Filtering
         if req.source_types:
             sources_str = ", ".join(req.source_types)
-            prompt += f"\n\nCONSTRAINT: Prioritize findings from these specific source types: {sources_str}. Do not use generic news sites if possible."
+            prompt += f"\n\nCONSTRAINT: Prioritize findings from: {sources_str}."
 
-        # C. Time Filtering
-        today = datetime.now().strftime("%B %Y")
-        prompt += f"\n\nCONSTRAINT: Time Horizon is '{req.time_filter}'. Today is {today}. Ensure the signals are active or published within this window."
+        prompt += f"\n\nCONSTRAINT: Time Horizon is '{req.time_filter}'."
 
-        # D. Blocklist & Salt
         prompt += f"\n\n[System Note: Random Seed {random.randint(1000, 9999)}]"
         if existing_titles:
-            blocklist_str = ", ".join([f'"{t}"' for t in existing_titles])
+            blocklist_str = ", ".join([f'"{t}"' for t in existing_titles if t != "Title"])
             prompt += f"\n\nIMPORTANT: Do NOT return these titles: {blocklist_str}"
 
         # 3. RUN ASSISTANT
