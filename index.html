@@ -6,6 +6,7 @@
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* NESTA BRAND GUIDELINES */
         :root {
             --nesta-purple: #9A1BBE;
             --nesta-green: #18A48C;
@@ -46,6 +47,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .border-nesta { border: 3px solid var(--nesta-black); }
+        
+        /* Collapsible Transition */
+        .collapsible-content { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; max-height: 0; opacity: 0; }
+        .collapsible-content.open { max-height: 500px; opacity: 1; }
     </style>
 </head>
 <body class="h-screen overflow-hidden selection:bg-[#97D9E3] selection:text-black">
@@ -53,6 +58,7 @@
     <div class="flex h-full max-w-[1400px] mx-auto p-6 gap-6">
         
         <div class="flex-1 flex flex-col gap-6">
+            
             <div class="bg-white border-nesta p-8 relative">
                 <div class="absolute top-0 left-0 w-full h-3 bg-[#97D9E3]"></div>
 
@@ -88,11 +94,20 @@
                     </div>
                 </div>
 
-                <div class="bg-gray-50 border-2 border-black p-4 mb-6 text-sm">
+                <div class="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
+                    <div class="text-[10px] uppercase font-bold tracking-widest text-gray-500">
+                        Active Mode: <span id="mode-display" class="text-[#0F294A]">Broad Horizon Scan • All Sources • Past Year</span>
+                    </div>
+                    <button onclick="toggleFilters()" class="text-[10px] font-bold uppercase text-[#9A1BBE] hover:text-[#0F294A] flex items-center gap-1">
+                        <span id="filter-arrow">▶</span> Advanced Filters
+                    </button>
+                </div>
+
+                <div id="filter-section" class="collapsible-content bg-gray-50 border-2 border-black p-4 mb-6 text-sm">
                     <div class="flex flex-wrap gap-6 items-center">
                         <div class="flex flex-col gap-1">
                             <label class="font-bold text-[10px] uppercase text-[#0F294A] tracking-wider">Time Horizon</label>
-                            <select id="time-filter" class="bg-white border border-black px-2 py-1 text-xs font-bold cursor-pointer hover:bg-[#97D9E3]">
+                            <select id="time-filter" onchange="updateModeDisplay()" class="bg-white border border-black px-2 py-1 text-xs font-bold cursor-pointer hover:bg-[#97D9E3]">
                                 <option value="Past Year">Past Year</option>
                                 <option value="Past 6 Months">Past 6 Months</option>
                                 <option value="Past 3 Months">Past 3 Months</option>
@@ -101,15 +116,15 @@
                         </div>
 
                         <div class="flex items-center gap-2 border-l border-gray-300 pl-6">
-                            <input type="checkbox" id="tech-mode" class="nesta-checkbox">
+                            <input type="checkbox" id="tech-mode" class="nesta-checkbox" onchange="updateModeDisplay()">
                             <label for="tech-mode" class="font-bold text-xs uppercase cursor-pointer select-none hover:text-[#9A1BBE]">Emerging Tech Only</label>
                         </div>
 
-                        <div class="flex gap-4 border-l border-gray-300 pl-6 flex-1">
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Academia" class="nesta-checkbox"><span class="text-[10px] font-bold uppercase">Academia</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Industry News" class="nesta-checkbox"><span class="text-[10px] font-bold uppercase">Industry News</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Startups" class="nesta-checkbox"><span class="text-[10px] font-bold uppercase">Startups/VC</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Substacks" class="nesta-checkbox"><span class="text-[10px] font-bold uppercase">Substacks</span></label>
+                        <div class="flex gap-4 border-l border-gray-300 pl-6 flex-1 flex-wrap">
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Academia" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[10px] font-bold uppercase">Academia</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Industry News" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[10px] font-bold uppercase">Industry News</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Startups" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[10px] font-bold uppercase">Startups/VC</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Substacks" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[10px] font-bold uppercase">Substacks</span></label>
                         </div>
                     </div>
                 </div>
@@ -136,7 +151,6 @@
                 </div>
                 <a id="sheet-link" href="#" target="_blank" class="text-[10px] text-[#97D9E3] hover:text-white underline text-right truncate">View Full Sheet ↗</a>
             </div>
-            
             <div id="db-list" class="flex-1 overflow-y-auto p-5 space-y-4 bg-white">
                 <div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-xs uppercase font-bold tracking-widest">Vault Empty</span></div>
             </div>
@@ -148,13 +162,43 @@
         let currentSignals = [];
 
         window.onload = async () => {
-            // Get Sheet URL on load
             try {
                 const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.json());
                 if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
             } catch(e) {}
             refreshDatabase();
         };
+
+        // UI: Toggle Filter Visibility
+        function toggleFilters() {
+            const section = document.getElementById('filter-section');
+            const arrow = document.getElementById('filter-arrow');
+            section.classList.toggle('open');
+            arrow.style.transform = section.classList.contains('open') ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        // UI: Update "Active Mode" Text
+        function updateModeDisplay() {
+            const time = document.getElementById('time-filter').value;
+            const tech = document.getElementById('tech-mode').checked;
+            const sources = Array.from(document.querySelectorAll('input[name="source"]:checked'));
+            
+            let parts = [];
+            
+            if (tech) parts.push("Emerging Tech");
+            else parts.push("Broad Horizon");
+
+            if (sources.length > 0) parts.push(`${sources.length} Source Types`);
+            else parts.push("All Sources");
+
+            parts.push(time);
+
+            document.getElementById('mode-display').innerText = parts.join(" • ");
+            
+            // Highlight text if not default
+            const isDefault = !tech && sources.length === 0 && time === "Past Year";
+            document.getElementById('mode-display').className = isDefault ? "text-[#0F294A]" : "text-[#18A48C] font-bold";
+        }
 
         async function runScan() {
             const chatBox = document.getElementById('chat-box');
@@ -170,9 +214,9 @@
             let prompt = `Find ${count} distinct innovation signals`;
             if (topic) prompt += ` related to '${topic}'`;
             else prompt += ` (perform a broad horizon scan)`;
-            
             prompt += ". Use the display_signal_card tool for each one.";
 
+            // UI Feedback
             chatBox.innerHTML += `
                 <div class="flex justify-end animate-fade-in mb-8">
                     <div class="bg-[#0F294A] text-white p-6 border-l-8 border-[#97D9E3] max-w-[80%]">
@@ -241,7 +285,6 @@
 
             const missionHtml = data.mission ? `<span class="bg-[#0F294A] text-white text-[10px] px-2 py-1 font-bold uppercase tracking-widest">${data.mission}</span>` : '';
             const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[10px] px-2 py-1 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
-
             const sEvo = data.score_evocativeness || 0;
             const sNov = data.score_novelty || 0;
             const sEvi = data.score_evidence || 0;
@@ -282,16 +325,9 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        title: data.title,
-                        score: data.score,
-                        archetype: data.archetype,
-                        hook: data.hook,
-                        url: data.final_url,
-                        mission: data.mission || "",
-                        lenses: data.lenses || "",
-                        score_evocativeness: data.score_evocativeness || 0,
-                        score_novelty: data.score_novelty || 0,
-                        score_evidence: data.score_evidence || 0
+                        title: data.title, score: data.score, archetype: data.archetype, hook: data.hook, url: data.final_url,
+                        mission: data.mission || "", lenses: data.lenses || "",
+                        score_evocativeness: data.score_evocativeness || 0, score_novelty: data.score_novelty || 0, score_evidence: data.score_evidence || 0
                     })
                 });
                 if(res.ok) {
@@ -300,10 +336,7 @@
                     btn.removeAttribute("onclick");
                     refreshDatabase();
                 } else { throw new Error("Save failed"); }
-            } catch (err) {
-                alert("Failed to save.");
-                btn.innerHTML = originalContent;
-            }
+            } catch (err) { alert("Failed to save."); btn.innerHTML = originalContent; }
         }
 
         async function refreshDatabase() {
@@ -315,7 +348,6 @@
                     list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-xs uppercase font-bold tracking-widest">Vault Empty</span></div>`;
                     return;
                 }
-                // Mapping Google Sheet Rows (Keys match row order)
                 list.innerHTML = items.map(item => `
                     <div class="bg-white p-4 border border-black relative group hover:border-[#9A1BBE] transition-colors animate-fade-in">
                         <div class="flex justify-between items-center mb-2">
