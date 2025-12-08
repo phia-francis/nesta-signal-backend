@@ -3,8 +3,9 @@ import json
 import sqlite3
 import asyncio
 import random
+from datetime import datetime, timedelta
 from contextlib import closing
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -36,7 +37,6 @@ DB_FILE = "signals.db"
 def init_db():
     with closing(sqlite3.connect(DB_FILE)) as conn:
         with conn:
-            # Create Base Table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS saved_signals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,31 +53,28 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Auto-Migrate: Add columns if they don't exist
+            # Auto-migration logic (same as before)
             cursor = conn.cursor()
             cursor.execute("PRAGMA table_info(saved_signals)")
             columns = [info[1] for info in cursor.fetchall()]
-            
-            # Migration Logic
             new_cols = {
-                "mission": "TEXT",
-                "lenses": "TEXT",
+                "mission": "TEXT", "lenses": "TEXT",
                 "score_evocativeness": "INTEGER DEFAULT 0",
                 "score_novelty": "INTEGER DEFAULT 0",
                 "score_evidence": "INTEGER DEFAULT 0"
             }
-            
             for col, dtype in new_cols.items():
                 if col not in columns:
-                    print(f"Migrating DB: Adding '{col}'...")
                     conn.execute(f"ALTER TABLE saved_signals ADD COLUMN {col} {dtype}")
-
 init_db()
 
 # --- DATA MODELS ---
 class ChatRequest(BaseModel):
     message: str
+    # ✅ NEW FILTER FIELDS
+    time_filter: str = "Past Year"     # e.g. "Past Month", "Past Year"
+    source_types: List[str] = []       # e.g. ["Academia", "VC Blogs"]
+    tech_mode: bool = False            # If True, focus strictly on technology
 
 class SaveSignalRequest(BaseModel):
     title: str
@@ -87,7 +84,6 @@ class SaveSignalRequest(BaseModel):
     url: str
     mission: Optional[str] = ""
     lenses: Optional[str] = ""
-    # ✅ NEW: Breakdown fields
     score_evocativeness: Optional[int] = 0
     score_novelty: Optional[int] = 0
     score_evidence: Optional[int] = 0
@@ -131,7 +127,6 @@ def save_signal(signal: SaveSignalRequest):
                 )
         return {"status": "success"}
     except Exception as e:
-        print(f"Save Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/saved/{signal_id}")
@@ -147,9 +142,9 @@ def delete_signal(signal_id: int):
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
-        print(f"User Query: {req.message}")
+        print(f"User Query: {req.message} | Filters: {req.time_filter}, {req.source_types}, TechMode: {req.tech_mode}")
         
-        # Deduping Logic
+        # 1. Deduping
         existing_titles = []
         try:
             with closing(sqlite3.connect(DB_FILE)) as conn:
@@ -157,16 +152,33 @@ async def chat_endpoint(req: ChatRequest):
                 existing_titles = [row[0] for row in cursor.fetchall()]
         except Exception: pass
 
-        enhanced_prompt = req.message
-        enhanced_prompt += f"\n\n[System Note: Random Seed {random.randint(1000, 9999)}]"
+        # 2. CONSTRUCT SOPHISTICATED PROMPT
+        prompt = req.message
+        
+        # A. Tech Mode Injection
+        if req.tech_mode:
+            prompt += "\n\nCONSTRAINT: This is a TECHNICAL HORIZON SCAN. Ignore social trends, policy ideas, or cultural shifts. Focus ONLY on emerging hardware, software, materials, or biotech breakthroughs."
+
+        # B. Source Filtering
+        if req.source_types:
+            sources_str = ", ".join(req.source_types)
+            prompt += f"\n\nCONSTRAINT: Prioritize findings from these specific source types: {sources_str}. Do not use generic news sites if possible."
+
+        # C. Time Filtering
+        today = datetime.now().strftime("%B %Y")
+        prompt += f"\n\nCONSTRAINT: Time Horizon is '{req.time_filter}'. Today is {today}. Ensure the signals are active or published within this window."
+
+        # D. Blocklist & Salt
+        prompt += f"\n\n[System Note: Random Seed {random.randint(1000, 9999)}]"
         if existing_titles:
             blocklist_str = ", ".join([f'"{t}"' for t in existing_titles])
-            enhanced_prompt += f"\n\nIMPORTANT: Do NOT return these titles: {blocklist_str}"
+            prompt += f"\n\nIMPORTANT: Do NOT return these titles: {blocklist_str}"
 
+        # 3. RUN ASSISTANT
         run = await asyncio.to_thread(
             client.beta.threads.create_and_run,
             assistant_id=ASSISTANT_ID,
-            thread={"messages": [{"role": "user", "content": enhanced_prompt}]}
+            thread={"messages": [{"role": "user", "content": prompt}]}
         )
 
         while True:
