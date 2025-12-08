@@ -6,7 +6,6 @@
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* NESTA BRAND GUIDELINES */
         :root {
             --nesta-purple: #9A1BBE;
             --nesta-green: #18A48C;
@@ -22,6 +21,21 @@
             color: var(--nesta-black);
         }
 
+        /* Checkbox Styling */
+        .nesta-checkbox {
+            appearance: none;
+            width: 16px; height: 16px;
+            border: 2px solid var(--nesta-black);
+            cursor: pointer;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .nesta-checkbox:checked {
+            background-color: var(--nesta-green);
+        }
+
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: var(--nesta-navy); }
@@ -52,14 +66,14 @@
             <div class="bg-white border-nesta p-8 relative">
                 <div class="absolute top-0 left-0 w-full h-3 bg-[#97D9E3]"></div>
 
-                <div class="flex justify-between items-end mb-8 border-b-2 border-black pb-4 mt-2">
+                <div class="flex justify-between items-end mb-6 border-b-2 border-black pb-4 mt-2">
                     <h2 class="font-bold text-4xl tracking-tight text-black leading-none">
                         <span class="text-[#9A1BBE]">nesta</span><br>Signal Scout
                     </h2>
                     <span class="bg-[#0F294A] text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">Discovery Hub</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                     <div>
                         <div class="flex justify-between mb-4 items-center">
                             <label class="text-sm font-bold uppercase tracking-widest text-[#0F294A]">Signal Volume</label>
@@ -68,9 +82,7 @@
                         <input type="range" id="signal-count" min="1" max="10" value="3" 
                             class="range-slider w-full focus:outline-none"
                             oninput="document.getElementById('slider-val').innerText = this.value">
-                        <div class="flex justify-between text-xs font-bold mt-2 text-gray-400">
-                            <span>1</span><span>10</span>
-                        </div>
+                        <div class="flex justify-between text-xs font-bold mt-2 text-gray-400"><span>1</span><span>10</span></div>
                     </div>
 
                     <div>
@@ -85,6 +97,47 @@
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-black border-l-2 border-black bg-[#f2f2f2]">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 border-2 border-black p-4 mb-6 text-sm">
+                    <div class="flex flex-wrap gap-6 items-center">
+                        
+                        <div class="flex flex-col gap-1">
+                            <label class="font-bold text-[10px] uppercase text-[#0F294A] tracking-wider">Time Horizon</label>
+                            <select id="time-filter" class="bg-white border border-black px-2 py-1 text-xs font-bold cursor-pointer hover:bg-[#97D9E3]">
+                                <option value="Past Year">Past Year</option>
+                                <option value="Past 6 Months">Past 6 Months</option>
+                                <option value="Past 3 Months">Past 3 Months</option>
+                                <option value="Past Month">Past Month</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2 border-l border-gray-300 pl-6">
+                            <input type="checkbox" id="tech-mode" class="nesta-checkbox">
+                            <label for="tech-mode" class="font-bold text-xs uppercase cursor-pointer select-none hover:text-[#9A1BBE]">
+                                Emerging Tech Only
+                            </label>
+                        </div>
+
+                        <div class="flex gap-4 border-l border-gray-300 pl-6 flex-1">
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]">
+                                <input type="checkbox" name="source" value="Academia" class="nesta-checkbox"> 
+                                <span class="text-[10px] font-bold uppercase">Academia</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]">
+                                <input type="checkbox" name="source" value="Industry News" class="nesta-checkbox"> 
+                                <span class="text-[10px] font-bold uppercase">Industry News</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]">
+                                <input type="checkbox" name="source" value="Startups" class="nesta-checkbox"> 
+                                <span class="text-[10px] font-bold uppercase">Startups/VC</span>
+                            </label>
+                             <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]">
+                                <input type="checkbox" name="source" value="Substacks" class="nesta-checkbox"> 
+                                <span class="text-[10px] font-bold uppercase">Substacks</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -108,26 +161,18 @@
 
         <div class="w-80 md:w-96 bg-white border-nesta flex flex-col overflow-hidden h-full z-10">
             <div class="bg-[#0F294A] text-white p-5 flex justify-between items-center">
-                <h3 class="font-bold uppercase tracking-wider flex items-center gap-2 text-sm">
-                    💾 Signal Vault
-                </h3>
-                <button onclick="refreshDatabase()" class="text-[10px] font-bold uppercase hover:text-[#97D9E3] transition-colors border border-white px-2 py-1">
-                    Refresh
-                </button>
+                <h3 class="font-bold uppercase tracking-wider flex items-center gap-2 text-sm">💾 Signal Vault</h3>
+                <button onclick="refreshDatabase()" class="text-[10px] font-bold uppercase hover:text-[#97D9E3] transition-colors border border-white px-2 py-1">Refresh</button>
             </div>
             <div id="db-list" class="flex-1 overflow-y-auto p-5 space-y-4 bg-white">
-                <div class="flex flex-col items-center justify-center h-40 text-gray-400">
-                    <span class="text-xs uppercase font-bold tracking-widest">Vault Empty</span>
-                </div>
+                <div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-xs uppercase font-bold tracking-widest">Vault Empty</span></div>
             </div>
         </div>
-
     </div>
 
     <script>
         const API_BASE = "https://nesta-signal-backend.onrender.com"; 
         let currentSignals = [];
-
         window.onload = refreshDatabase;
 
         async function runScan() {
@@ -135,16 +180,26 @@
             const topic = document.getElementById('manual-input').value.trim();
             const count = document.getElementById('signal-count').value;
             const mission = document.getElementById('mission-select').value;
+            
+            // ✅ NEW: Gather Filter Data
+            const timeFilter = document.getElementById('time-filter').value;
+            const techMode = document.getElementById('tech-mode').checked;
+            const sources = Array.from(document.querySelectorAll('input[name="source"]:checked')).map(cb => cb.value);
 
             if(chatBox.innerText.includes("Ready to Scout")) chatBox.innerHTML = "";
 
             let prompt = `Find ${count} distinct innovation signals`;
             if (topic) prompt += ` related to '${topic}'`;
             else prompt += ` (perform a broad horizon scan)`;
+            
+            // Note: We don't add the filter text to the 'message' here directly, 
+            // we send it as separate fields to the backend to keep things clean.
             if (mission !== "All Missions") prompt += ` with a specific focus on the '${mission}' mission`;
             else prompt += ` across any relevant mission`;
+
             prompt += ". Use the display_signal_card tool for each one.";
 
+            // UI Feedback
             chatBox.innerHTML += `
                 <div class="flex justify-end animate-fade-in mb-8">
                     <div class="bg-[#0F294A] text-white p-6 border-l-8 border-[#97D9E3] max-w-[80%]">
@@ -152,25 +207,31 @@
                         <div class="space-y-1 text-sm font-medium">
                             <div class="flex justify-between"><span class="opacity-70">TARGET:</span> <span>${count} Signals</span></div>
                             <div class="flex justify-between"><span class="opacity-70">MISSION:</span> <span>${mission}</span></div>
-                            ${topic ? `<div class="flex justify-between"><span class="opacity-70">TOPIC:</span> <span>"${topic}"</span></div>` : ''}
+                            ${techMode ? `<div class="flex justify-between text-[#18A48C]"><span class="opacity-70">MODE:</span> <span>Emerging Tech Only</span></div>` : ''}
+                            ${sources.length ? `<div class="flex justify-between"><span class="opacity-70">SOURCES:</span> <span class="text-xs">${sources.join(', ')}</span></div>` : ''}
+                            <div class="flex justify-between"><span class="opacity-70">TIMELINE:</span> <span>${timeFilter}</span></div>
                         </div>
                     </div>
                 </div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const loaderId = `load-${Date.now()}`;
-            chatBox.innerHTML += `
-                <div id="${loaderId}" class="flex gap-4 items-center text-[#9A1BBE] text-sm ml-2 mt-4 font-bold uppercase animate-pulse">
-                    <div class="w-4 h-4 bg-[#9A1BBE]"></div> Scouting horizon...
-                </div>`;
+            chatBox.innerHTML += `<div id="${loaderId}" class="flex gap-4 items-center text-[#9A1BBE] text-sm ml-2 mt-4 font-bold uppercase animate-pulse"><div class="w-4 h-4 bg-[#9A1BBE]"></div> Scouting horizon...</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
+                // ✅ SEND NEW FIELDS TO BACKEND
                 const res = await fetch(`${API_BASE}/api/chat`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: prompt })
+                    body: JSON.stringify({ 
+                        message: prompt,
+                        time_filter: timeFilter,
+                        source_types: sources,
+                        tech_mode: techMode
+                    })
                 });
+                
                 if (!res.ok) throw new Error(`Server Error: ${res.status}`);
                 const data = await res.json();
                 document.getElementById(loaderId).remove();
@@ -193,12 +254,7 @@
 
         function renderSystemMessage(html) {
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `
-                <div class="flex animate-fade-in mb-6">
-                    <div class="bg-[#D2C9C0] p-4 text-sm font-bold text-black max-w-[90%] uppercase tracking-wide border-l-4 border-black">
-                        ${html}
-                    </div>
-                </div>`;
+            chatBox.innerHTML += `<div class="flex animate-fade-in mb-6"><div class="bg-[#D2C9C0] p-4 text-sm font-bold text-black max-w-[90%] uppercase tracking-wide border-l-4 border-black">${html}</div></div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -214,8 +270,7 @@
             const missionHtml = data.mission ? `<span class="bg-[#0F294A] text-white text-[10px] px-2 py-1 font-bold uppercase tracking-widest">${data.mission}</span>` : '';
             const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[10px] px-2 py-1 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
 
-            // ✅ NEW: Score Breakdown Tooltip Logic
-            // If the AI didn't return values (older signals), default to 0
+            // Scores
             const sEvo = data.score_evocativeness || 0;
             const sNov = data.score_novelty || 0;
             const sEvi = data.score_evidence || 0;
@@ -223,38 +278,24 @@
             const cardHTML = `
                 <div class="animate-fade-in group mb-8">
                     <div class="bg-white border-2 border-black p-8 relative hover:border-[#9A1BBE] transition-colors">
-                        
                         <div class="flex justify-between items-start mb-5 border-b border-gray-200 pb-4">
                             <span class="text-[#9A1BBE] font-bold text-xs uppercase tracking-widest">${data.archetype || 'SIGNAL'}</span>
                             
                             <div class="relative group/score cursor-help">
-                                <div class="font-mono text-sm font-bold ${scoreClass} px-3 py-1">
-                                    ⚡ ${data.score}/100
-                                </div>
+                                <div class="font-mono text-sm font-bold ${scoreClass} px-3 py-1">⚡ ${data.score}/100</div>
                                 <div class="absolute bottom-full right-0 mb-2 w-48 bg-[#0F294A] text-white p-3 text-[10px] uppercase font-bold tracking-widest hidden group-hover/score:block border-2 border-[#97D9E3] z-50 shadow-lg">
                                     <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Evocative</span> <span>${sEvo}/10</span></div>
                                     <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Novelty</span> <span>${sNov}/10</span></div>
                                     <div class="flex justify-between"><span class="text-[#97D9E3]">Evidence</span> <span>${sEvi}/10</span></div>
                                 </div>
                             </div>
-
                         </div>
-
                         <h3 class="font-bold text-black text-2xl leading-tight mb-4 group-hover:text-[#9A1BBE] transition-colors">${data.title}</h3>
                         <p class="text-sm text-gray-800 mb-6 leading-relaxed font-medium">${data.hook}</p>
-                        
-                        <div class="flex flex-wrap gap-2 mb-8">
-                            ${missionHtml}
-                            ${lensesHtml}
-                        </div>
-
+                        <div class="flex flex-wrap gap-2 mb-8">${missionHtml}${lensesHtml}</div>
                         <div class="grid grid-cols-2 gap-0 border-2 border-black">
-                            <button onclick="saveSignalByIndex(${idx}, this)" class="bg-black text-white text-xs font-bold py-4 hover:bg-[#9A1BBE] transition-colors uppercase tracking-widest border-r border-gray-700">
-                                Save Signal
-                            </button>
-                            <a href="${data.final_url}" target="_blank" class="bg-white text-black text-xs font-bold py-4 text-center uppercase tracking-widest hover:bg-[#97D9E3] transition-colors">
-                                Source ↗
-                            </a>
+                            <button onclick="saveSignalByIndex(${idx}, this)" class="bg-black text-white text-xs font-bold py-4 hover:bg-[#9A1BBE] transition-colors uppercase tracking-widest border-r border-gray-700">Save Signal</button>
+                            <a href="${data.final_url}" target="_blank" class="bg-white text-black text-xs font-bold py-4 text-center uppercase tracking-widest hover:bg-[#97D9E3] transition-colors">Source ↗</a>
                         </div>
                     </div>
                 </div>`;
@@ -278,7 +319,6 @@
                         url: data.final_url,
                         mission: data.mission || "",
                         lenses: data.lenses || "",
-                        // ✅ PASSING NEW METRICS
                         score_evocativeness: data.score_evocativeness || 0,
                         score_novelty: data.score_novelty || 0,
                         score_evidence: data.score_evidence || 0
@@ -301,7 +341,6 @@
             try {
                 const res = await fetch(`${API_BASE}/api/saved`);
                 const items = await res.json();
-                
                 if(items.length === 0) {
                     list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-xs uppercase font-bold tracking-widest">Vault Empty</span></div>`;
                     return;
@@ -319,12 +358,7 @@
                     </div>`).join('');
             } catch (err) { console.error("DB Error", err); }
         }
-
-        async function deleteSignal(id) {
-            if(!confirm("DELETE SIGNAL?")) return;
-            await fetch(`${API_BASE}/api/saved/${id}`, { method: 'DELETE' });
-            refreshDatabase();
-        }
+        async function deleteSignal(id) { if(!confirm("DELETE SIGNAL?")) return; await fetch(`${API_BASE}/api/saved/${id}`, { method: 'DELETE' }); refreshDatabase(); }
     </script>
 </body>
 </html>
