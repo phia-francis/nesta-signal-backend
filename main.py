@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import random
+import re
 import httpx
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException
@@ -115,7 +116,23 @@ def get_date_restrict(filter_text):
     # Default to 1 year if unknown
     return mapping.get(filter_text, "y1")
 
-async def perform_google_search(query, date_restrict="y1"):
+def infer_requested_signal_count(message: str) -> Optional[int]:
+    """Best-effort parse of how many signals the user asked for."""
+    try:
+        match = re.search(r"\b(\d{1,2})\s*(?:new\s+)?(?:signals?|findings?|examples?)", message, re.IGNORECASE)
+        return int(match.group(1)) if match else None
+    except ValueError:
+        return None
+
+
+def determine_search_target_count(requested_signal_count: Optional[int]) -> int:
+    """Scale search result volume with requested signal count (bounded to protect API usage)."""
+    if requested_signal_count is None:
+        return 8
+    return max(5, min(20, requested_signal_count * 2))
+
+
+async def perform_google_search(query, date_restrict="y1", requested_results: int = 8):
     """
     Performs a real web search using Google Custom Search API.
     ✅ NOW ENFORCES DATE RESTRICTION.
@@ -123,37 +140,54 @@ async def perform_google_search(query, date_restrict="y1"):
     if not GOOGLE_SEARCH_KEY or not GOOGLE_SEARCH_CX:
         print("❌ CONFIG ERROR: Missing Google Search Keys")
         return "System Error: Search is not configured."
-    
-    print(f"🔍 Searching Google for: '{query}' (Filter: {date_restrict})...")
-    
+
+    target_results = max(1, min(20, requested_results))
+    print(f"🔍 Searching Google for: '{query}' (Filter: {date_restrict}, Target Results: {target_results})...")
+
     url = "https://www.googleapis.com/customsearch/v1"
-    params = {
-        "key": GOOGLE_SEARCH_KEY,
-        "cx": GOOGLE_SEARCH_CX,
-        "q": query,
-        "num": 3,
-        "dateRestrict": date_restrict # ✅ Forces results to be recent
-    }
-    
+    results = []
+    start_index = 1
+
     async with httpx.AsyncClient() as http_client:
         try:
-            resp = await http_client.get(url, params=params)
-            
-            if resp.status_code != 200:
-                print(f"❌ Google API Error: {resp.text}")
-                return f"Search Failed: {resp.status_code}."
+            while len(results) < target_results:
+                remaining = target_results - len(results)
+                page_size = min(10, remaining)  # Google API caps 'num' at 10
+                params = {
+                    "key": GOOGLE_SEARCH_KEY,
+                    "cx": GOOGLE_SEARCH_CX,
+                    "q": query,
+                    "num": page_size,
+                    "start": start_index,
+                    "dateRestrict": date_restrict  # ✅ Forces results to be recent
+                }
 
-            data = resp.json()
-            
-            if "items" not in data:
+                resp = await http_client.get(url, params=params)
+
+                if resp.status_code != 200:
+                    print(f"❌ Google API Error: {resp.text}")
+                    return f"Search Failed: {resp.status_code}."
+
+                data = resp.json()
+
+                items = data.get("items", [])
+                if not items:
+                    break
+
+                for item in items:
+                    # Include snippet and link so AI can verify date context
+                    results.append(f"Title: {item.get('title')}\nLink: {item.get('link')}\nSnippet: {item.get('snippet', '')}")
+
+                # Avoid infinite loops if Google returns fewer than requested
+                if len(items) < page_size:
+                    break
+
+                start_index += page_size
+
+            if not results:
                 return "No search results found. Try a different query."
-            
-            results = []
-            for item in data["items"]:
-                # Include snippet and link so AI can verify date context
-                results.append(f"Title: {item.get('title')}\nLink: {item.get('link')}\nSnippet: {item.get('snippet', '')}")
-            
-            return "\n\n".join(results)
+
+            return "\n\n".join(results[:target_results])
 
         except Exception as e:
             print(f"❌ Exception during search: {e}")
@@ -238,11 +272,13 @@ def delete_signal(signal_id: int):
 async def chat_endpoint(req: ChatRequest):
     try:
         print(f"Incoming Query: {req.message} | Filters: {req.time_filter}, TechMode: {req.tech_mode}")
-        
+
         # 1. FETCH CONTEXT
         existing_titles = []
         learning_prompt = ""
-        
+        requested_signal_count = infer_requested_signal_count(req.message)
+        search_result_target = determine_search_target_count(requested_signal_count)
+
         try:
             sheet = get_google_sheet()
             if sheet:
@@ -310,10 +346,14 @@ async def chat_endpoint(req: ChatRequest):
                     if tool.function.name == "perform_web_search":
                         args = json.loads(tool.function.arguments)
                         search_query = args.get("query")
-                        
+
                         # ✅ PASS TIME FILTER TO SEARCH FUNCTION
                         date_code = get_date_restrict(req.time_filter)
-                        search_result = await perform_google_search(search_query, date_code)
+                        search_result = await perform_google_search(
+                            search_query,
+                            date_code,
+                            requested_results=search_result_target
+                        )
                         
                         tool_outputs.append({
                             "tool_call_id": tool.id,
