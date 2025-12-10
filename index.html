@@ -70,6 +70,62 @@
         .glow-button::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: translateX(-100%); transition: transform 0.6s ease; }
         .glow-button:hover::after { transform: translateX(100%); }
         .metric-chip { background: rgba(15,41,74,0.05); border: 1px solid rgba(15,41,74,0.15); border-radius: 10px; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; color: var(--nesta-navy); }
+        .metric-chip.active {
+            background: rgba(154,27,190,0.15);
+            border-color: rgba(154,27,190,0.6);
+            color: #0F294A;
+            box-shadow: 0 6px 14px rgba(154,27,190,0.15);
+        }
+        
+        .badge-source {
+            background: rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #0F294A;
+        }
+        
+        .mission-tag {
+            color: #fff;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 999px;
+        }
+        
+        .score-tooltip {
+            width: 240px;
+            backdrop-filter: blur(8px);
+        }
+        
+        .progress-track {
+            background: rgba(15,41,74,0.08);
+            border: 1px solid rgba(15,41,74,0.2);
+            border-radius: 999px;
+            height: 6px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #9A1BBE, #18A48C);
+            height: 100%;
+            width: 12%;
+            transition: width 0.25s ease;
+        }
+        
+        .subtle-pulse {
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
     </style>
 </head>
 <body class="h-screen overflow-hidden selection:bg-[#97D9E3] selection:text-black flex flex-col p-6">
@@ -119,9 +175,14 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 pb-2">
-                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)"><span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)</button>
-                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)"><span class="text-[#18A48C] text-sm">●</span> Niche sources</button>
-                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)"><span class="text-[#0F294A] text-sm">●</span> URL verified</button>
+                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)">
+                            <span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)
+                        </button>
+                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)">
+                            <span class="text-[#18A48C] text-sm">●</span> Niche sources
+                        </button>
+                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)">
+                            <span class="text-[#0F294A] text-sm">●</span> URL verified
                         </button>
                     </div>
                 </div>
@@ -271,13 +332,18 @@
             const loaderId = `load-${Date.now()}`;
             chatBox.innerHTML += `
                 <div id="${loaderId}" class="flex gap-3 items-center text-[#9A1BBE] text-xs ml-1 mt-2 font-bold uppercase animate-fade-in mb-6">
-                    <div class="relative flex items-center justify-center">
-                        <div class="w-3 h-3 rounded-full bg-[#9A1BBE] animate-ping"></div>
-                        <div class="w-2 h-2 rounded-full bg-[#9A1BBE] absolute"></div>
+                    <div class="relative flex items-center justify-center w-6 h-6">
+                        <div class="w-6 h-6 rounded-full border-2 border-[#9A1BBE] animate-spin"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#18A48C] absolute animate-ping"></div>
                     </div>
-                    <div class="flex flex-col leading-tight text-left">
-                        <span>Scouting</span>
-                        <span class="text-[10px] text-[#0F294A] font-normal normal-case">Curating niche sources...</span>
+                    <div class="flex flex-col leading-tight text-left gap-1">
+                        <span id="${loaderId}-headline">Scouting</span>
+                        <span id="${loaderId}-status" class="text-[10px] text-[#0F294A] font-normal normal-case">
+                            Curating niche sources...
+                        </span>
+                        <div class="progress-track">
+                            <div id="${loaderId}-bar" class="progress-bar"></div>
+                        </div>
                     </div>
                 </div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
