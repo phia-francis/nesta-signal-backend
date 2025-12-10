@@ -23,6 +23,7 @@
                         linear-gradient(135deg, #f9fafb 0%, #eef2f7 100%);
             color: var(--nesta-black);
             min-height: 100vh;
+            overflow: hidden;
         }
 
         .nesta-checkbox {
@@ -69,6 +70,14 @@
         .glow-button::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: translateX(-100%); transition: transform 0.6s ease; }
         .glow-button:hover::after { transform: translateX(100%); }
         .metric-chip { background: rgba(15,41,74,0.05); border: 1px solid rgba(15,41,74,0.15); border-radius: 10px; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; color: var(--nesta-navy); }
+        .metric-chip.active { background: rgba(154,27,190,0.15); border-color: rgba(154,27,190,0.6); color: #0F294A; box-shadow: 0 6px 14px rgba(154,27,190,0.15); }
+        .badge-source { background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; color: #0F294A; }
+        .mission-tag { color: #fff; font-size: 11px; letter-spacing: 0.08em; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; }
+        .score-tooltip { width: 240px; backdrop-filter: blur(8px); }
+        .progress-track { background: rgba(15,41,74,0.08); border: 1px solid rgba(15,41,74,0.2); border-radius: 999px; height: 6px; overflow: hidden; }
+        .progress-bar { background: linear-gradient(90deg, #9A1BBE, #18A48C); height: 100%; width: 12%; transition: width 0.25s ease; }
+        .subtle-pulse { animation: pulse 1.8s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
     </style>
 </head>
 <body class="h-screen overflow-hidden selection:bg-[#97D9E3] selection:text-black flex flex-col p-6">
@@ -102,9 +111,9 @@
                         <div class="flex flex-col gap-0.5">
                             <label class="font-bold text-[9px] uppercase text-[#0F294A]">Time Horizon</label>
                             <select id="time-filter" onchange="updateModeDisplay()" class="bg-white border border-black px-1 py-0.5 text-[10px] font-bold cursor-pointer">
-                                <option value="Past Year">Past Year</option>
+                                <option value="Past Month" selected>Past Month</option>
                                 <option value="Past 6 Months">Past 6 Months</option>
-                                <option value="Past Month">Past Month</option>
+                                <option value="Past Year">Past Year</option>
                             </select>
                         </div>
                         <div class="flex items-center gap-1 border-l border-gray-300 pl-3">
@@ -118,6 +127,9 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 pb-2">
+                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)"><span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)</button>
+                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)"><span class="text-[#18A48C] text-sm">●</span> Niche sources</button>
+                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)"><span class="text-[#0F294A] text-sm">●</span> URL verified</button>
                         <span class="metric-chip"><span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)</span>
                         <span class="metric-chip"><span class="text-[#18A48C] text-sm">●</span> Niche sources</span>
                         <span class="metric-chip"><span class="text-[#0F294A] text-sm">●</span> URL verified</span>
@@ -171,8 +183,9 @@
     </div>
 
     <script>
-        const API_BASE = "https://nesta-signal-backend.onrender.com"; 
+        const API_BASE = "https://nesta-signal-backend.onrender.com";
         let currentSignals = [];
+        const qualityPreferences = { recent: true, niche: false, verified: false };
 
         window.onload = async () => {
             try {
@@ -180,7 +193,40 @@
                 if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
             } catch(e) {}
             refreshDatabase();
+            updateModeDisplay();
         };
+
+        function toggleQualityChip(el) {
+            const flag = el.dataset.flag;
+            if(!flag) return;
+            el.classList.toggle('active');
+            qualityPreferences[flag] = el.classList.contains('active');
+            updateModeDisplay();
+        }
+
+        function qualityPreferenceText() {
+            const prefs = [];
+            if (qualityPreferences.recent) prefs.push("recent (≤30d)");
+            if (qualityPreferences.niche) prefs.push("niche/technical sources");
+            if (qualityPreferences.verified) prefs.push("URL verified only");
+            return prefs.length ? `Quality: ${prefs.join(", ")}` : "Quality: standard";
+        }
+
+        function formatSourceLabel(url) {
+            try {
+                const host = new URL(url).hostname.replace(/^www\./, "");
+                const parts = host.split('.').filter(Boolean);
+                if(parts.length === 0) return "";
+                const banned = new Set(["com","co","org","net","gov","ac","uk"]);
+                let label = parts[0];
+                for(let i = parts.length - 1; i >= 0; i--) {
+                    if(!banned.has(parts[i].toLowerCase())) { label = parts[i]; break; }
+                }
+                return label.toUpperCase();
+            } catch (e) {
+                return "";
+            }
+        }
 
         function toggleFilters() {
             const section = document.getElementById('filter-section');
@@ -197,6 +243,7 @@
             if (tech) parts.push("Emerging Tech"); else parts.push("Broad Horizon");
             if (sources.length > 0) parts.push(`${sources.length} Sources`);
             parts.push(time);
+            parts.push(qualityPreferenceText());
             document.getElementById('mode-display').innerText = parts.join(" • ");
         }
 
@@ -215,6 +262,8 @@
             if (topic) prompt += ` related to '${topic}'`;
             else prompt += ` (perform a broad horizon scan)`;
             prompt += ". Use the display_signal_card tool for each one.";
+            const qualityNote = qualityPreferenceText();
+            if (qualityNote && qualityNote !== 'Quality: standard') prompt += ` ${qualityNote}.`;
 
             chatBox.innerHTML += `
                 <div class="flex justify-end animate-fade-in mb-4">
@@ -232,6 +281,14 @@
             const loaderId = `load-${Date.now()}`;
             chatBox.innerHTML += `
                 <div id="${loaderId}" class="flex gap-3 items-center text-[#9A1BBE] text-xs ml-1 mt-2 font-bold uppercase animate-fade-in mb-6">
+                    <div class="relative flex items-center justify-center w-6 h-6">
+                        <div class="w-6 h-6 rounded-full border-2 border-[#9A1BBE] animate-spin"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#18A48C] absolute animate-ping"></div>
+                    </div>
+                    <div class="flex flex-col leading-tight text-left gap-1">
+                        <span id="${loaderId}-headline">Scouting</span>
+                        <span id="${loaderId}-status" class="text-[10px] text-[#0F294A] font-normal normal-case">Curating niche sources...</span>
+                        <div class="progress-track"><div id="${loaderId}-bar" class="progress-bar"></div></div>
                     <div class="relative flex items-center justify-center">
                         <div class="w-3 h-3 rounded-full bg-[#9A1BBE] animate-ping"></div>
                         <div class="w-2 h-2 rounded-full bg-[#9A1BBE] absolute"></div>
@@ -242,6 +299,24 @@
                     </div>
                 </div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
+
+            const progressStages = [
+                "Shaping high-friction queries…",
+                "Running web searches…",
+                "Verifying URLs & freshness…",
+                "Scoring novelty & evidence…",
+                "Drafting hooks & implications…"
+            ];
+            let stageIndex = 0;
+            let progressWidth = 12;
+            const progressTimer = setInterval(() => {
+                stageIndex = (stageIndex + 1) % progressStages.length;
+                progressWidth = Math.min(96, progressWidth + 6);
+                const statusEl = document.getElementById(`${loaderId}-status`);
+                const barEl = document.getElementById(`${loaderId}-bar`);
+                if(statusEl) statusEl.textContent = progressStages[stageIndex];
+                if(barEl) barEl.style.width = `${progressWidth}%`;
+            }, 1400);
 
             try {
                 const res = await fetch(`${API_BASE}/api/chat`, {
@@ -257,7 +332,9 @@
                 
                 if (!res.ok) throw new Error(`Server Error: ${res.status}`);
                 const data = await res.json();
-                document.getElementById(loaderId).remove();
+                clearInterval(progressTimer);
+                const loaderEl = document.getElementById(loaderId);
+                if(loaderEl) loaderEl.remove();
 
                 if (data.ui_type === 'signal_list') {
                     data.items.forEach(signal => renderCard(signal));
@@ -269,6 +346,7 @@
                 }
             } catch (err) {
                 console.error(err);
+                clearInterval(progressTimer);
                 const loader = document.getElementById(loaderId);
                 if(loader) loader.innerHTML = `<div class="bg-[#EB003B] text-white p-2 text-xs font-bold">⚠️ ERROR: ${err.message}</div>`;
             }
@@ -286,12 +364,18 @@
             const chatBox = document.getElementById('chat-box');
             
             let scoreClass = "bg-gray-100 text-black";
-            if(data.score >= 80) scoreClass = "bg-[#18A48C] text-white"; 
+            if(data.score >= 80) scoreClass = "bg-[#18A48C] text-white";
             else if(data.score >= 60) scoreClass = "bg-[#97D9E3] text-black";
-
-            const missionHtml = data.mission ? `<span class="bg-[#0F294A] text-white text-[9px] px-1.5 py-0.5 font-bold uppercase tracking-widest">${data.mission}</span>` : '';
+            const missionColorMap = {
+                "A Sustainable Future": "#18A48C",
+                "A Fairer Start": "#FF6E47",
+                "A Healthy Life": "#9A1BBE"
+            };
+            const missionBg = missionColorMap[data.mission] || "#0F294A";
+            const missionHtml = data.mission ? `<span class="mission-tag" style="background:${missionBg};">${data.mission}</span>` : '';
             const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[9px] px-1.5 py-0.5 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
             const sEvo = data.score_evocativeness || 0; const sNov = data.score_novelty || 0; const sEvi = data.score_evidence || 0;
+            const sourceLabel = formatSourceLabel(data.final_url || data.sourceURL || "");
 
             const cardHTML = `
                 <div class="animate-fade-in group mb-6">
@@ -299,18 +383,23 @@
                         
                         <div class="flex justify-between items-start mb-4 border-b border-gray-200 pb-3">
                             <span class="text-[#9A1BBE] font-bold text-[10px] uppercase tracking-widest">${data.archetype || 'SIGNAL'}</span>
-                            <div class="relative group/score cursor-help">
-                                <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1">⚡ ${data.score}/100</div>
-                                <div class="absolute bottom-full right-0 mb-2 w-40 bg-[#0F294A] text-white p-2 text-[9px] uppercase font-bold tracking-widest hidden group-hover/score:block border-2 border-[#97D9E3] z-50 shadow-lg">
-                                    <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Evocative</span> <span>${sEvo}/10</span></div>
-                                    <div class="flex justify-between mb-1"><span class="text-[#97D9E3]">Novelty</span> <span>${sNov}/10</span></div>
-                                    <div class="flex justify-between"><span class="text-[#97D9E3]">Evidence</span> <span>${sEvi}/10</span></div>
+                            <div class="flex items-center gap-2">
+                                ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
+                                <div class="relative group/score cursor-help">
+                                    <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1 rounded-md">⚡ ${data.score}/100</div>
+                                    <div class="absolute bottom-full right-0 mb-2 score-tooltip bg-white/95 text-[#0F294A] p-3 text-[10px] font-semibold tracking-normal hidden group-hover/score:block border-2 border-[#9A1BBE] z-50 shadow-xl rounded-lg">
+                                        <div class="mb-2 text-[11px] font-bold uppercase text-[#9A1BBE]">Scoring breakdown</div>
+                                        <div class="flex justify-between mb-1"><span>Evocativeness (surprise)</span> <span class="font-mono">${sEvo}/10</span></div>
+                                        <div class="flex justify-between mb-1"><span>Novelty (niche sources)</span> <span class="font-mono">${sNov}/10</span></div>
+                                        <div class="flex justify-between"><span>Evidence (verifiable)</span> <span class="font-mono">${sEvi}/10</span></div>
+                                        <div class="mt-2 text-[9px] text-[#0F294A]">Hover to see why this score was assigned.</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <h3 class="font-bold text-black text-xl leading-tight mb-3 group-hover:text-[#9A1BBE] transition-colors"><a href="${data.final_url}" target="_blank" class="hover:underline">${data.title}</a></h3>
-                        <p class="text-sm text-gray-800 mb-5 leading-relaxed font-medium">${data.hook}</p>
+                        <p class="text-[15px] text-gray-800 mb-5 leading-relaxed font-medium bg-[#f8f8f8] border border-gray-200 p-3 rounded-lg shadow-sm">${data.hook}</p>
                         <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}</div>
 
                         <div class="bg-gray-50 border-2 border-gray-200 p-3 mb-4 text-xs">
