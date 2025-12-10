@@ -23,6 +23,7 @@
                         linear-gradient(135deg, #f9fafb 0%, #eef2f7 100%);
             color: var(--nesta-black);
             min-height: 100vh;
+            overflow: hidden;
         }
 
         .nesta-checkbox {
@@ -118,14 +119,9 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2 pb-2">
-                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)">
-                            <span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)
-                        </button>
-                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)">
-                            <span class="text-[#18A48C] text-sm">●</span> Niche sources
-                        </button>
-                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)">
-                            <span class="text-[#0F294A] text-sm">●</span> URL verified
+                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)"><span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)</button>
+                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)"><span class="text-[#18A48C] text-sm">●</span> Niche sources</button>
+                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)"><span class="text-[#0F294A] text-sm">●</span> URL verified</button>
                         </button>
                     </div>
                 </div>
