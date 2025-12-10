@@ -162,9 +162,11 @@ async def perform_google_search(query, date_restrict="y1"):
 def craft_widget_response(tool_args):
     """Standardizes the card data for the frontend."""
     url = tool_args.get("sourceURL") or tool_args.get("url")
+
+    # Cards must include tool-provided URLs to comply with the anti-hallucination policy.
     if not url:
-        query = tool_args.get("title", "").replace(" ", "+")
-        url = f"https://www.google.com/search?q={query}"
+        print("❌ Missing URL in tool output; skipping card to avoid unverifiable links.")
+        return None
     
     tool_args["final_url"] = url
     tool_args["ui_type"] = "signal_card"
@@ -323,11 +325,17 @@ async def chat_endpoint(req: ChatRequest):
                     elif tool.function.name == "display_signal_card":
                         args = json.loads(tool.function.arguments)
                         processed_card = craft_widget_response(args)
-                        accumulated_signals.append(processed_card)
-                        tool_outputs.append({
-                            "tool_call_id": tool.id,
-                            "output": json.dumps({"status": "displayed"})
-                        })
+                        if processed_card:
+                            accumulated_signals.append(processed_card)
+                            tool_outputs.append({
+                                "tool_call_id": tool.id,
+                                "output": json.dumps({"status": "displayed"})
+                            })
+                        else:
+                            tool_outputs.append({
+                                "tool_call_id": tool.id,
+                                "output": json.dumps({"status": "skipped_missing_url"})
+                            })
 
                 await asyncio.to_thread(
                     client.beta.threads.runs.submit_tool_outputs,
