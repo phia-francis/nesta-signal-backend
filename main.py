@@ -69,9 +69,9 @@ def get_google_sheet():
 def ensure_sheet_headers(sheet):
     """Guarantee that the sheet has the expected header row."""
     expected_headers = [
-        "Title", "Score", "Archetype", "Hook", "URL", "Mission", "Lenses",
+        "Title", "Score", "Hook", "URL", "Mission", "Lenses",
         "Score_Evocativeness", "Score_Novelty", "Score_Evidence",
-        "User_Rating", "User_Status", "User_Comment"
+        "User_Rating", "User_Status", "User_Comment", "Shareable", "Feedback"
     ]
 
     try:
@@ -255,12 +255,13 @@ def upsert_signal(signal: Dict[str, Any]) -> None:
     ensure_sheet_headers(sheet)
 
     payload = [
-        signal.get("title", ""), signal.get("score", 0), signal.get("archetype", ""),
+        signal.get("title", ""), signal.get("score", 0),
         signal.get("hook", ""), signal.get("url", ""), signal.get("mission", ""),
         signal.get("lenses", ""), signal.get("score_evocativeness", 0),
         signal.get("score_novelty", 0), signal.get("score_evidence", 0),
-        signal.get("user_rating", 0), signal.get("user_status", "Pending"),
-        signal.get("user_comment", "")
+        signal.get("user_rating", 3), signal.get("user_status", "Pending"),
+        signal.get("user_comment", ""), signal.get("shareable", "Maybe"),
+        signal.get("feedback", "")
     ]
 
     try:
@@ -280,7 +281,7 @@ def upsert_signal(signal: Dict[str, Any]) -> None:
                 break
 
         if match_row:
-            sheet.update(f"A{match_row}:M{match_row}", [payload])
+            sheet.update(f"A{match_row}:N{match_row}", [payload])
         else:
             sheet.append_row(payload)
     except Exception as e:
@@ -393,7 +394,6 @@ class ChatRequest(BaseModel):
 class SaveSignalRequest(BaseModel):
     title: str
     score: int
-    archetype: str
     hook: str
     url: str
     mission: Optional[str] = ""
@@ -404,6 +404,8 @@ class SaveSignalRequest(BaseModel):
     user_rating: Optional[int] = 3
     user_status: Optional[str] = "Pending"
     user_comment: Optional[str] = ""
+    shareable: Optional[str] = "Maybe"
+    feedback: Optional[str] = ""
 
 
 class UpdateSignalRequest(BaseModel):
@@ -412,14 +414,8 @@ class UpdateSignalRequest(BaseModel):
     user_rating: Optional[int] = 3
     user_status: Optional[str] = "Pending"
     user_comment: Optional[str] = ""
-
-
-class UpdateSignalRequest(BaseModel):
-    url: Optional[str] = ""
-    title: Optional[str] = ""
-    user_rating: Optional[int] = 0
-    user_status: Optional[str] = "Pending"
-    user_comment: Optional[str] = ""
+    shareable: Optional[str] = "Maybe"
+    feedback: Optional[str] = ""
 
 # --- ENDPOINTS ---
 
@@ -451,9 +447,11 @@ def update_signal(update: UpdateSignalRequest):
         existing = {
             "title": update.title or "",
             "url": update.url or "",
-            "user_rating": update.user_rating or 0,
+            "user_rating": update.user_rating or 3,
             "user_status": update.user_status or "Pending",
-            "user_comment": update.user_comment or ""
+            "user_comment": update.user_comment or "",
+            "shareable": update.shareable or "Maybe",
+            "feedback": update.feedback or (update.user_comment or "")
         }
 
         if not existing["title"] and not existing["url"]:
@@ -469,24 +467,25 @@ def update_signal(update: UpdateSignalRequest):
                 match = rec
                 break
 
-        if match:
-            merged = {
-                "title": match.get("Title", existing["title"]),
-                "score": match.get("Score", 0),
-                "archetype": match.get("Archetype", ""),
-                "hook": match.get("Hook", ""),
-                "url": match.get("URL", existing["url"]),
-                "mission": match.get("Mission", ""),
-                "lenses": match.get("Lenses", ""),
-                "score_evocativeness": match.get("Score_Evocativeness", 0),
-                "score_novelty": match.get("Score_Novelty", 0),
-                "score_evidence": match.get("Score_Evidence", 0),
-                "user_rating": existing["user_rating"],
-                "user_status": existing["user_status"],
-                "user_comment": existing["user_comment"]
-            }
-            upsert_signal(merged)
-            return {"status": "updated"}
+            if match:
+                merged = {
+                    "title": match.get("Title", existing["title"]),
+                    "score": match.get("Score", 0),
+                    "hook": match.get("Hook", ""),
+                    "url": match.get("URL", existing["url"]),
+                    "mission": match.get("Mission", ""),
+                    "lenses": match.get("Lenses", ""),
+                    "score_evocativeness": match.get("Score_Evocativeness", 0),
+                    "score_novelty": match.get("Score_Novelty", 0),
+                    "score_evidence": match.get("Score_Evidence", 0),
+                    "user_rating": existing["user_rating"],
+                    "user_status": existing["user_status"],
+                    "user_comment": existing["user_comment"],
+                    "shareable": existing.get("shareable") or match.get("Shareable", "Maybe"),
+                    "feedback": existing.get("feedback") or match.get("Feedback", match.get("User_Comment", ""))
+                }
+                upsert_signal(merged)
+                return {"status": "updated"}
 
         # If not found, save as new pending entry
         upsert_signal({
@@ -494,7 +493,9 @@ def update_signal(update: UpdateSignalRequest):
             "url": existing["url"],
             "user_rating": existing["user_rating"],
             "user_status": existing["user_status"],
-            "user_comment": existing["user_comment"]
+            "user_comment": existing["user_comment"],
+            "shareable": existing.get("shareable", "Maybe"),
+            "feedback": existing.get("feedback", existing["user_comment"])
         })
         return {"status": "created"}
     except HTTPException:
@@ -660,7 +661,6 @@ async def chat_endpoint(req: ChatRequest):
                                 upsert_signal({
                                     "title": processed_card.get("title"),
                                     "score": processed_card.get("score", 0),
-                                    "archetype": processed_card.get("archetype", ""),
                                     "hook": processed_card.get("hook", ""),
                                     "url": processed_card.get("final_url", ""),
                                     "mission": processed_card.get("mission", ""),
@@ -668,7 +668,10 @@ async def chat_endpoint(req: ChatRequest):
                                     "score_evocativeness": processed_card.get("score_evocativeness", 0),
                                     "score_novelty": processed_card.get("score_novelty", 0),
                                     "score_evidence": processed_card.get("score_evidence", 0),
-                                    "user_status": "Pending"
+                                    "user_status": "Pending",
+                                    "user_rating": 3,
+                                    "shareable": "Maybe",
+                                    "feedback": ""
                                 })
                             except Exception as e:
                                 print(f"Autosave Warning: {e}")
