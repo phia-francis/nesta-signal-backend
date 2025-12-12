@@ -611,6 +611,15 @@ async def chat_endpoint(req: ChatRequest):
 
         # 2. PROMPT CONSTRUCTION
         prompt = req.message
+
+        prompt += "\n\nROLE: You are Nesta's Discovery Hub Lead Foresight Researcher. Operate as a research engine (not a writer) and use British English throughout."
+        prompt += "\n\nNON-NEGOTIABLE WORKFLOW: You have no memory—every signal must come from fresh 'perform_web_search' calls within the current time horizon. If no direct article URL is found, discard the candidate and keep searching."
+        prompt += ("\n\nTOOL CONTRACT (display_signal_card): title (<=8 words), score (0-100), score_evocativeness (0-10), "
+                    "score_novelty (0-10), score_evidence (0-10), hook (75-100 words using the Deep Hook 3-sentence format), "
+                    "final_url, source_country, mission (choose from list), lenses (comma-separated). Additional properties are not allowed.")
+        prompt += ("\n\nSCORING: Calculate novelty, evidence, and evocativeness using the provided rubric (distance from mainstream, reality vs rumour, shock factor)."
+                    " Use these to derive the total quality score you return."
+        )
         
         # ✅ NEW: STRICT ANTI-HALLUCINATION INJECTION
         prompt += """
