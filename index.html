@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* NESTA BRAND GUIDELINES */
         :root {
@@ -17,10 +20,10 @@
         }
 
         body {
-            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
-            background: radial-gradient(circle at 20% 20%, rgba(151, 217, 227, 0.25), transparent 30%),
-                        radial-gradient(circle at 80% 0%, rgba(154, 27, 190, 0.08), transparent 35%),
-                        linear-gradient(135deg, #f9fafb 0%, #eef2f7 100%);
+            font-family: 'Inter', 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background: radial-gradient(circle at 20% 20%, rgba(151, 217, 227, 0.3), transparent 30%),
+                        radial-gradient(circle at 80% 0%, rgba(154, 27, 190, 0.1), transparent 35%),
+                        linear-gradient(135deg, #fdfefe 0%, #eef2f7 100%);
             color: var(--nesta-black);
             min-height: 100vh;
             overflow: hidden;
@@ -33,12 +36,26 @@
         }
         .nesta-checkbox:checked { background-color: var(--nesta-green); }
 
-        /* Star Rating */
-        .star-rating { direction: rtl; display: inline-flex; }
-        .star-rating input { display: none; }
-        .star-rating label { font-size: 1rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
-        .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label {
-            color: var(--nesta-purple);
+        .choice-pill {
+            border-radius: 12px;
+            border: 1px solid rgba(15,41,74,0.15);
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255,255,255,0.85);
+        }
+        .choice-pill.active {
+            border-color: #9A1BBE;
+            color: #0F294A;
+            box-shadow: 0 10px 30px rgba(154,27,190,0.18);
+            background: linear-gradient(120deg, rgba(151,217,227,0.25), rgba(154,27,190,0.08));
         }
 
         ::-webkit-scrollbar { width: 10px; }
@@ -76,6 +93,11 @@
             color: #0F294A;
             box-shadow: 0 6px 14px rgba(154,27,190,0.15);
         }
+
+        .quality-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(151,217,227,0.15); }
+        .quality-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+        .region-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(15,41,74,0.06); border: 1px solid rgba(15,41,74,0.12); border-radius: 12px; padding: 6px 10px; font-size: 11px; font-weight: 700; }
+        .quality-bar { height: 8px; border-radius: 6px; background: linear-gradient(90deg, #18A48C, #97D9E3, #9A1BBE); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
         
         .badge-source {
             background: rgba(0,0,0,0.08);
@@ -236,6 +258,7 @@
     <script>
         const API_BASE = "https://nesta-signal-backend.onrender.com";
         let currentSignals = [];
+        let currentTimeFilter = "Past Month";
         const qualityPreferences = { recent: true, niche: false, verified: false };
 
         window.onload = async () => {
@@ -250,6 +273,11 @@
         function toggleQualityChip(el) {
             const flag = el.dataset.flag;
             if(!flag) return;
+            const timeFilter = document.getElementById('time-filter').value;
+            if (flag === 'recent' && timeFilter !== 'Past Month') {
+                document.getElementById('time-filter').value = 'Past Month';
+                currentTimeFilter = 'Past Month';
+            }
             el.classList.toggle('active');
             qualityPreferences[flag] = el.classList.contains('active');
             updateModeDisplay();
@@ -266,17 +294,69 @@
         function formatSourceLabel(url) {
             try {
                 const host = new URL(url).hostname.replace(/^www\./, "");
-                const parts = host.split('.').filter(Boolean);
-                if(parts.length === 0) return "";
-                const banned = new Set(["com","co","org","net","gov","ac","uk"]);
-                let label = parts[0];
-                for(let i = parts.length - 1; i >= 0; i--) {
-                    if(!banned.has(parts[i].toLowerCase())) { label = parts[i]; break; }
-                }
-                return label.toUpperCase();
+                const friendlyMap = {
+                    'nationalgeographic': 'National Geographic',
+                    'scientificamerican': 'Scientific American',
+                    'newscientist': 'New Scientist',
+                    'mittechnologyreview': 'MIT Technology Review',
+                    'techcrunch': 'TechCrunch',
+                    'theguardian': 'The Guardian',
+                    'washingtonpost': 'Washington Post',
+                    'wired': 'WIRED'
+                };
+
+                const base = host.split('.')[0];
+                if (friendlyMap[base]) return friendlyMap[base];
+
+                const cleaned = base.replace(/[-_]/g, ' ');
+                const words = cleaned.match(/[a-z]+|\d+/gi) || [];
+                const label = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                if (label.length > 0) return label;
+                return host;
             } catch (e) {
                 return "";
             }
+        }
+
+        function regionFromUrl(url, fallbackRegion = "") {
+            try {
+                const parsed = new URL(url);
+                const host = parsed.hostname;
+                const tld = host.split('.').pop()?.toLowerCase();
+                if (fallbackRegion) return fallbackRegion;
+                const map = { uk: 'UK', us: 'US', ca: 'Canada', au: 'Australia', eu: 'EU' };
+                if (tld && map[tld]) return map[tld];
+                return '';
+            } catch (e) { return fallbackRegion || ''; }
+        }
+
+        function flagForRegion(region) {
+            const flags = { 'UK': '🇬🇧', 'US': '🇺🇸', 'Canada': '🇨🇦', 'Australia': '🇦🇺', 'EU': '🇪🇺' };
+            return flags[region] || '🌐';
+        }
+
+        function formatMonthYear(dateString) {
+            if (!dateString) return '';
+            const parsed = new Date(dateString);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+            }
+            return dateString;
+        }
+
+        function buildQualityBadges(data) {
+            const badges = [];
+            const explicitFlags = Array.isArray(data.quality_flags) ? data.quality_flags.map(f => f.toLowerCase()) : [];
+            if (qualityPreferences.niche || (data.score_novelty || 0) >= 8 || explicitFlags.includes('niche')) {
+                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#18A48C"></span> Niche source</span>`);
+            }
+            if (qualityPreferences.verified || (data.score_evidence || 0) >= 8 || explicitFlags.includes('verified')) {
+                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#0F294A"></span> URL verified</span>`);
+            }
+            if ((qualityPreferences.recent && currentTimeFilter === 'Past Month') || explicitFlags.includes('recent')) {
+                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#9A1BBE"></span> Recent (≤30d)</span>`);
+            }
+            return badges.join(' ');
         }
 
         function toggleFilters() {
@@ -288,8 +368,13 @@
 
         function updateModeDisplay() {
             const time = document.getElementById('time-filter').value;
+            currentTimeFilter = time;
             const tech = document.getElementById('tech-mode').checked;
             const sources = Array.from(document.querySelectorAll('input[name="source"]:checked'));
+            if (time !== 'Past Month') {
+                qualityPreferences.recent = false;
+                document.querySelector('[data-flag="recent"]').classList.remove('active');
+            }
             let parts = [];
             if (tech) parts.push("Emerging Tech"); else parts.push("Broad Horizon");
             if (sources.length > 0) parts.push(`${sources.length} Sources`);
@@ -313,6 +398,7 @@
             if (topic) prompt += ` related to '${topic}'`;
             else prompt += ` (perform a broad horizon scan)`;
             prompt += ". Use the display_signal_card tool for each one.";
+            prompt += ` Focus on sources published within the ${timeFilter} window.`;
             const qualityNote = qualityPreferenceText();
             if (qualityNote && qualityNote !== 'Quality: standard') prompt += ` ${qualityNote}.`;
 
@@ -406,11 +492,20 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        function setShareable(idx, value, btn) {
+            const container = document.getElementById(`shareable-controls-${idx}`);
+            if (!container) return;
+            container.querySelectorAll('.choice-pill').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const hidden = document.getElementById(`shareable-${idx}`);
+            if (hidden) hidden.value = value;
+        }
+
         function renderCard(data) {
             currentSignals.push(data);
             const idx = currentSignals.length - 1;
             const chatBox = document.getElementById('chat-box');
-            
+
             let scoreClass = "bg-gray-100 text-black";
             if(data.score >= 80) scoreClass = "bg-[#18A48C] text-white";
             else if(data.score >= 60) scoreClass = "bg-[#97D9E3] text-black";
@@ -424,15 +519,34 @@
             const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[9px] px-1.5 py-0.5 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
             const sEvo = data.score_evocativeness || 0; const sNov = data.score_novelty || 0; const sEvi = data.score_evidence || 0;
             const sourceLabel = formatSourceLabel(data.final_url || data.sourceURL || "");
+            const region = regionFromUrl(data.final_url || data.sourceURL || "", data.source_region || "");
+            const regionChip = region ? `<span class="region-chip">${flagForRegion(region)} ${region}</span>` : '';
+            const sourceDate = formatMonthYear(data.source_date || data.published_date || data.date);
+            const dateChip = sourceDate ? `<span class="region-chip bg-[#97D9E3]/30 border-[#97D9E3] text-[#0F294A]">🗓️ ${sourceDate}</span>` : '';
+            const qualityBadgeRow = buildQualityBadges(data);
+            const qualityScore = Math.min(100, Math.round(((sEvo + sNov + sEvi) / 30) * 100));
+            const sourceTags = [];
+            if (data.source_type) sourceTags.push(data.source_type);
+            if (Array.isArray(data.source_types)) sourceTags.push(...data.source_types);
+            if (data.source_category) sourceTags.push(data.source_category);
+            const uniqueSourceTags = [...new Set(sourceTags.filter(Boolean))];
+            const sourceTagHtml = uniqueSourceTags.map(tag => `<span class="badge-source">${tag}</span>`).join('');
 
             const cardHTML = `
                 <div class="animate-fade-in group mb-6">
                     <div class="glass-panel bg-white/95 border-2 border-black p-6 relative hover:border-[#9A1BBE] transition-colors rounded-xl shadow-lg">
-                        
+
                         <div class="flex justify-between items-start mb-4 border-b border-gray-200 pb-3">
-                            <span class="text-[#9A1BBE] font-bold text-[10px] uppercase tracking-widest">${data.archetype || 'SIGNAL'}</span>
-                            <div class="flex items-center gap-2">
-                                ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
+                                    ${sourceTagHtml}
+                                    ${regionChip}
+                                    ${dateChip}
+                                </div>
+                                ${qualityBadgeRow ? `<div class="flex flex-wrap gap-2">${qualityBadgeRow}</div>` : ''}
+                            </div>
+                            <div class="flex items-center gap-3">
                                 <div class="relative group/score cursor-help">
                                     <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1 rounded-md">⚡ ${data.score}/100</div>
                                     <div class="absolute bottom-full right-0 mb-2 score-tooltip bg-white/95 text-[#0F294A] p-3 text-[10px] font-semibold tracking-normal hidden group-hover/score:block border-2 border-[#9A1BBE] z-50 shadow-xl rounded-lg">
@@ -443,38 +557,39 @@
                                         <div class="mt-2 text-[9px] text-[#0F294A]">Hover to see why this score was assigned.</div>
                                     </div>
                                 </div>
+                                <div class="min-w-[140px]">
+                                    <div class="flex justify-between items-center text-[10px] font-bold text-[#0F294A] mb-1">
+                                        <span>Signal Quality</span>
+                                        <span class="font-mono">${qualityScore}%</span>
+                                    </div>
+                                    <div class="quality-bar">
+                                        <div style="width:${qualityScore}%; height:8px; border-radius:6px; background: linear-gradient(90deg, #18A48C, #97D9E3, #9A1BBE);"></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-1 text-[9px] text-gray-500 mt-1">
+                                        <span>Evoc.</span><span>Novel</span><span>Evidence</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <h3 class="font-bold text-black text-xl leading-tight mb-3 group-hover:text-[#9A1BBE] transition-colors"><a href="${data.final_url}" target="_blank" class="hover:underline">${data.title}</a></h3>
                         <p class="text-[15px] text-gray-800 mb-5 leading-relaxed font-medium bg-[#f8f8f8] border border-gray-200 p-3 rounded-lg shadow-sm">${data.hook}</p>
-                        <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}</div>
+                        <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}${sourceTagHtml}</div>
 
-                        <div class="bg-gray-50 border-2 border-gray-200 p-3 mb-4 text-xs">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="font-bold uppercase text-gray-500 text-[9px] tracking-widest">Training Feedback</span>
-                                <div class="flex gap-2">
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="status-${idx}" value="Accepted" class="peer hidden" checked>
-                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#18A48C] hover:text-[#18A48C]">Accept</span>
-                                    </label>
-                                    <span class="text-gray-300">|</span>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="status-${idx}" value="Rejected" class="peer hidden">
-                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#EB003B] hover:text-[#EB003B]">Reject</span>
-                                    </label>
+                        <div class="bg-gray-50 border-2 border-gray-200 p-3 mb-4 text-xs rounded-lg">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-[10px] text-[#0F294A] uppercase tracking-widest">Shareable?</span>
+                                    <div class="flex gap-2" id="shareable-controls-${idx}">
+                                        <button type="button" class="choice-pill" onclick="setShareable(${idx}, 'Yes', this)">✅ Yes</button>
+                                        <button type="button" class="choice-pill active" onclick="setShareable(${idx}, 'Maybe', this)">🤔 Maybe</button>
+                                        <button type="button" class="choice-pill" onclick="setShareable(${idx}, 'No', this)">🚫 No</button>
+                                    </div>
                                 </div>
+                                <input type="hidden" id="shareable-${idx}" value="Maybe">
+                                <label class="font-bold text-[9px] uppercase text-gray-500">Feedback</label>
+                                <textarea id="comment-${idx}" placeholder="How should this improve?" class="w-full mt-1 p-2 border border-gray-300 bg-white text-[10px] focus:outline-none focus:border-[#9A1BBE] rounded" rows="2"></textarea>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <div class="star-rating">
-                                    <input type="radio" id="star5-${idx}" name="rating-${idx}" value="5"><label for="star5-${idx}">★</label>
-                                    <input type="radio" id="star4-${idx}" name="rating-${idx}" value="4"><label for="star4-${idx}">★</label>
-                                    <input type="radio" id="star3-${idx}" name="rating-${idx}" value="3" checked><label for="star3-${idx}">★</label>
-                                    <input type="radio" id="star2-${idx}" name="rating-${idx}" value="2"><label for="star2-${idx}">★</label>
-                                    <input type="radio" id="star1-${idx}" name="rating-${idx}" value="1"><label for="star1-${idx}">★</label>
-                                </div>
-                            </div>
-                            <textarea id="comment-${idx}" placeholder="Optional: Why is this a good/bad signal?" class="w-full mt-2 p-2 border border-gray-300 bg-white text-[10px] focus:outline-none focus:border-[#9A1BBE]" rows="1"></textarea>
                         </div>
 
                         <div class="grid grid-cols-2 gap-0 border-2 border-black h-10">
@@ -493,19 +608,20 @@
             btn.innerHTML = `SAVING...`;
 
             // Collect feedback
-            const status = document.querySelector(`input[name="status-${idx}"]:checked`).value;
-            const rating = document.querySelector(`input[name="rating-${idx}"]:checked`)?.value || 3;
-            const comment = document.getElementById(`comment-${idx}`).value;
+            const shareable = document.getElementById(`shareable-${idx}`).value;
+            const feedback = document.getElementById(`comment-${idx}`).value;
+            const rating = 3;
+            const status = 'Reviewed';
 
             try {
                 const res = await fetch(`${API_BASE}/api/save`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        title: data.title, score: data.score, archetype: data.archetype, hook: data.hook, url: data.final_url,
+                        title: data.title, score: data.score, hook: data.hook, url: data.final_url,
                         mission: data.mission || "", lenses: data.lenses || "",
                         score_evocativeness: data.score_evocativeness || 0, score_novelty: data.score_novelty || 0, score_evidence: data.score_evidence || 0,
-                        user_rating: parseInt(rating), user_status: status, user_comment: comment
+                        user_rating: parseInt(rating), user_status: status, user_comment: feedback, shareable: shareable, feedback: feedback
                     })
                 });
                 if(res.ok) {
@@ -526,36 +642,45 @@
                     list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-[10px] uppercase font-bold tracking-widest">Empty</span></div>`;
                     return;
                 }
-                list.innerHTML = items.map(item => `
-                    <div class="bg-white p-3 border border-black relative group hover:border-[#9A1BBE] transition-colors animate-fade-in">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[60%]">${item['Archetype'] || item['archetype'] || 'SIGNAL'}</span>
-                            <span class="text-[9px] font-bold text-white bg-[#9A1BBE] px-1">${item['Score'] || item['score'] || 0}</span>
+                list.innerHTML = items.map(item => {
+                    const shareable = item['Shareable'] || item['shareable'] || 'Maybe';
+                    const feedback = item['Feedback'] || item['feedback'] || item['User_Comment'] || '';
+                    return `
+                    <div class="bg-white/90 p-4 border border-black relative group hover:border-[#9A1BBE] transition-colors animate-fade-in rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">${shareable === 'Yes' ? '✅ Shareable' : shareable === 'No' ? '🚫 Not shareable' : '🤔 Maybe shareable'}</span>
+                            <span class="text-[9px] font-bold text-white bg-[#9A1BBE] px-2 py-1 rounded">${item['Score'] || item['score'] || 0}</span>
                         </div>
-                        <div class="font-bold text-black text-[10px] leading-snug pr-4 mb-2">
+                        <div class="font-bold text-black text-[11px] leading-snug pr-4 mb-3">
                             <a href="${item['URL'] || item['url']}" target="_blank" class="hover:text-[#18A48C] transition-colors line-clamp-2">${item['Title'] || item['title']}</a>
                         </div>
-                        <div class="flex flex-col gap-1 text-[9px] mb-1">
-                            <label class="font-bold text-gray-500 uppercase tracking-widest">Rating</label>
-                            <input type="number" min="0" max="5" step="1" id="saved-rating-${item['_row'] || ''}" value="${item['User_Rating'] || item['user_rating'] || 0}" class="border border-gray-300 px-1 py-0.5 text-[10px] w-16">
+                        <div class="flex flex-col gap-2 text-[9px] mb-3">
+                            <label class="font-bold text-gray-500 uppercase tracking-widest">Shareable</label>
+                            <select id="saved-shareable-${item['_row'] || ''}" class="border border-gray-300 px-2 py-1 text-[10px] w-full bg-white">
+                                <option value="Yes" ${shareable === 'Yes' ? 'selected' : ''}>Yes</option>
+                                <option value="Maybe" ${shareable === 'Maybe' ? 'selected' : ''}>Maybe</option>
+                                <option value="No" ${shareable === 'No' ? 'selected' : ''}>No</option>
+                            </select>
                         </div>
-                        <div class="flex flex-col gap-1 text-[9px] mb-2">
-                            <label class="font-bold text-gray-500 uppercase tracking-widest">Comment</label>
-                            <textarea id="saved-comment-${item['_row'] || ''}" rows="2" class="border border-gray-300 px-1 py-1 text-[10px] w-full">${item['User_Comment'] || item['user_comment'] || ''}</textarea>
+                        <div class="flex flex-col gap-1 text-[9px] mb-3">
+                            <label class="font-bold text-gray-500 uppercase tracking-widest">Feedback</label>
+                            <textarea id="saved-comment-${item['_row'] || ''}" rows="2" class="border border-gray-300 px-2 py-2 text-[10px] w-full rounded">${feedback}</textarea>
                         </div>
-                        <button onclick="updateSavedSignal('${item['URL'] || item['url']}', '${item['Title'] || item['title']}', ${item['_row'] || 'null'})" class="bg-black text-white text-[10px] font-bold uppercase tracking-widest w-full py-1 hover:bg-[#18A48C]">Update</button>
-                    </div>`).join('');
+                        <button onclick="updateSavedSignal('${item['URL'] || item['url']}', '${item['Title'] || item['title']}', ${item['_row'] || 'null'})" class="bg-black text-white text-[10px] font-bold uppercase tracking-widest w-full py-2 hover:bg-[#18A48C] rounded">Update</button>
+                    </div>`;
+                }).join('');
             } catch (err) { console.error("DB Error", err); }
         }
 
         async function updateSavedSignal(url, title, rowId) {
-            const rating = parseInt(document.getElementById(`saved-rating-${rowId || ''}`)?.value || 0);
+            const rating = 3;
+            const shareable = document.getElementById(`saved-shareable-${rowId || ''}`)?.value || 'Maybe';
             const comment = document.getElementById(`saved-comment-${rowId || ''}`)?.value || '';
             try {
                 const res = await fetch(`${API_BASE}/api/update`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, user_status: 'Accepted' })
+                    body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Reviewed' })
                 });
                 if(res.ok) {
                     refreshDatabase();
