@@ -282,14 +282,14 @@
     </div>
 
     <script>
-        const API_BASE = "https://nesta-signal-backend.onrender.com";
+        const API_BASE_URL = "https://nesta-signal-backend.onrender.com";
         let currentSignals = [];
         let currentTimeFilter = "Past Month";
         const qualityPreferences = { recent: true, niche: false, verified: false };
 
         window.onload = async () => {
             try {
-                const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.json());
+                const cfg = await fetch(API_BASE_URL + '/api/config').then(r => r.json());
                 if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
             } catch(e) {}
             refreshDatabase();
@@ -503,7 +503,7 @@
             }, 1400);
 
             try {
-                const res = await fetch(`${API_BASE}/api/chat`, {
+                const res = await fetch(API_BASE_URL + '/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
@@ -691,7 +691,7 @@
             const rating = 3;
 
             try {
-                const res = await fetch(`${API_BASE}/api/save`, {
+                const res = await fetch(API_BASE_URL + '/api/save', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -721,7 +721,7 @@
             const refreshBtn = document.getElementById('refresh-btn');
             setButtonLoading(refreshBtn, true, '', 'Refreshing…');
             try {
-                const res = await fetch(`${API_BASE}/api/saved`);
+                const res = await fetch(API_BASE_URL + '/api/saved');
                 const items = await res.json();
                 if(items.length === 0) {
                     list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-[10px] uppercase font-bold tracking-widest">Empty</span></div>`;
@@ -763,7 +763,7 @@
             const shareable = document.getElementById(`saved-shareable-${rowId || ''}`)?.value || 'Maybe';
             const comment = document.getElementById(`saved-comment-${rowId || ''}`)?.value || '';
             try {
-                const res = await fetch(`${API_BASE}/api/update`, {
+                const res = await fetch(API_BASE_URL + '/api/update', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Accepted' })
