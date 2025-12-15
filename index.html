@@ -282,14 +282,15 @@
     </div>
 
     <script>
-        const API_BASE = "https://nesta-signal-backend.onrender.com";
+        // MAKE SURE THIS IS EXACTLY YOUR RENDER URL (No trailing slash)
+        const API_BASE_URL = "https://nesta-signal-backend.onrender.com";
         let currentSignals = [];
         let currentTimeFilter = "Past Month";
         const qualityPreferences = { recent: true, niche: false, verified: false };
 
         window.onload = async () => {
             try {
-                const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.json());
+                const cfg = await fetch(API_BASE_URL + '/api/config').then(r => r.json());
                 if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
             } catch(e) {}
             refreshDatabase();
@@ -503,7 +504,7 @@
             }, 1400);
 
             try {
-                const res = await fetch(`${API_BASE}/api/chat`, {
+                const res = await fetch(API_BASE_URL + '/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
@@ -591,7 +592,6 @@
             const sourceDate = formatMonthYear(data.source_date || data.published_date || data.date);
             const dateChip = sourceDate ? `<span class="region-chip bg-[#97D9E3]/30 border-[#97D9E3] text-[#0F294A]">🗓️ ${sourceDate}</span>` : '';
             const qualityBadgeRow = buildQualityBadges(data);
-            const qualityScore = Math.min(100, Math.round(((sEvo + sNov + sEvi) / 30) * 100));
             const sourceTags = [];
             if (data.source_type) sourceTags.push(data.source_type);
             if (Array.isArray(data.source_types)) sourceTags.push(...data.source_types);
@@ -613,9 +613,9 @@
                                     <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1 rounded-md">⚡ ${data.score}/100</div>
                                     <div class="absolute bottom-full right-0 mb-2 score-tooltip bg-white/95 text-[#0F294A] p-3 text-[10px] font-semibold tracking-normal hidden group-hover/score:block border-2 border-[#9A1BBE] z-50 shadow-xl rounded-lg">
                                         <div class="mb-2 text-[11px] font-bold uppercase text-[#9A1BBE]">Scoring breakdown</div>
-                                        <div class="flex justify-between mb-1"><span>Evocativeness (surprise)</span> <span class="font-mono">${sEvo}/10</span></div>
-                                        <div class="flex justify-between mb-1"><span>Novelty (niche sources)</span> <span class="font-mono">${sNov}/10</span></div>
-                                        <div class="flex justify-between"><span>Evidence (verifiable)</span> <span class="font-mono">${sEvi}/10</span></div>
+                                        <div class="flex justify-between mb-1"><span>Evocativeness (surprise)</span> <span class="font-mono">${sEvoRaw}/10</span></div>
+                                        <div class="flex justify-between mb-1"><span>Novelty (niche sources)</span> <span class="font-mono">${sNovRaw}/10</span></div>
+                                        <div class="flex justify-between"><span>Evidence (verifiable)</span> <span class="font-mono">${sEviRaw}/10</span></div>
                                         <div class="mt-2 text-[9px] text-[#0F294A]">Hover to see why this score was assigned.</div>
                                     </div>
                                     <div class="text-[10px] text-gray-500 mt-1">Overall derived from these sub-scores (equal weighting).</div>
@@ -691,7 +691,7 @@
             const rating = 3;
 
             try {
-                const res = await fetch(`${API_BASE}/api/save`, {
+                const res = await fetch(API_BASE_URL + '/api/save', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -721,7 +721,7 @@
             const refreshBtn = document.getElementById('refresh-btn');
             setButtonLoading(refreshBtn, true, '', 'Refreshing…');
             try {
-                const res = await fetch(`${API_BASE}/api/saved`);
+                const res = await fetch(API_BASE_URL + '/api/saved');
                 const items = await res.json();
                 if(items.length === 0) {
                     list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-[10px] uppercase font-bold tracking-widest">Empty</span></div>`;
@@ -763,7 +763,7 @@
             const shareable = document.getElementById(`saved-shareable-${rowId || ''}`)?.value || 'Maybe';
             const comment = document.getElementById(`saved-comment-${rowId || ''}`)?.value || '';
             try {
-                const res = await fetch(`${API_BASE}/api/update`, {
+                const res = await fetch(API_BASE_URL + '/api/update', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Accepted' })
