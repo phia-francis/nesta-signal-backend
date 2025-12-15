@@ -4,6 +4,7 @@ import asyncio
 import random
 import re
 import httpx
+from urllib.parse import urlparse
 from typing import Optional, List, Dict, Any, Set
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,9 +70,9 @@ def get_google_sheet():
 def ensure_sheet_headers(sheet):
     """Guarantee that the sheet has the expected header row."""
     expected_headers = [
-        "Title", "Score", "Archetype", "Hook", "URL", "Mission", "Lenses",
+        "Title", "Score", "Hook", "URL", "Mission", "Lenses",
         "Score_Evocativeness", "Score_Novelty", "Score_Evidence",
-        "User_Rating", "User_Status", "User_Comment"
+        "User_Rating", "User_Status", "User_Comment", "Shareable", "Feedback"
     ]
 
     try:
@@ -204,6 +205,53 @@ def get_learning_examples():
         print(f"Learning Error: {e}")
         return ""
 
+
+def get_feedback_summary() -> str:
+    """Surface common shareable patterns and feedback to guide the assistant."""
+    try:
+        sheet = get_google_sheet()
+        if not sheet:
+            return ""
+
+        ensure_sheet_headers(sheet)
+        rows = sheet.get_all_records()
+        if not rows:
+            return ""
+
+        yes_shareable = 0
+        maybe_shareable = 0
+        no_shareable = 0
+        feedback_notes: List[str] = []
+
+        for row in rows:
+            shareable = str(row.get("Shareable", "")).lower()
+            if shareable == "yes":
+                yes_shareable += 1
+            elif shareable == "no":
+                no_shareable += 1
+            else:
+                maybe_shareable += 1
+
+            note = str(row.get("Feedback") or row.get("User_Comment") or "").strip()
+            if note:
+                feedback_notes.append(note)
+
+        top_notes = feedback_notes[:5]
+
+        summary = ["### USER FEEDBACK LEARNINGS:"]
+        summary.append(f"- Shareable ratio — Yes: {yes_shareable}, Maybe: {maybe_shareable}, No: {no_shareable}.")
+        if top_notes:
+            summary.append("- Representative feedback notes:")
+            for n in top_notes:
+                summary.append(f"  • {n}")
+
+        summary.append("- Lean toward patterns marked 'Yes' and avoid those marked 'No'.")
+        summary.append("- Use feedback themes above to refine sources, missions, and hooks.")
+        return "\n".join(summary)
+    except Exception as e:
+        print(f"Feedback summary error: {e}")
+        return ""
+
 def get_date_restrict(filter_text):
     """Maps UI 'Time Horizon' text to Google API 'dateRestrict' values."""
     mapping = {
@@ -255,12 +303,13 @@ def upsert_signal(signal: Dict[str, Any]) -> None:
     ensure_sheet_headers(sheet)
 
     payload = [
-        signal.get("title", ""), signal.get("score", 0), signal.get("archetype", ""),
+        signal.get("title", ""), signal.get("score", 0),
         signal.get("hook", ""), signal.get("url", ""), signal.get("mission", ""),
         signal.get("lenses", ""), signal.get("score_evocativeness", 0),
         signal.get("score_novelty", 0), signal.get("score_evidence", 0),
-        signal.get("user_rating", 0), signal.get("user_status", "Pending"),
-        signal.get("user_comment", "")
+        signal.get("user_rating", 3), signal.get("user_status", "Pending"),
+        signal.get("user_comment", ""), signal.get("shareable", "Maybe"),
+        signal.get("feedback", "")
     ]
 
     try:
@@ -280,7 +329,7 @@ def upsert_signal(signal: Dict[str, Any]) -> None:
                 break
 
         if match_row:
-            sheet.update(f"A{match_row}:M{match_row}", [payload])
+            sheet.update(f"A{match_row}:N{match_row}", [payload])
         else:
             sheet.append_row(payload)
     except Exception as e:
@@ -363,18 +412,65 @@ async def perform_google_search(query, date_restrict="m1", requested_results: in
             print(f"❌ Exception during search: {e}")
             return f"Search Exception: {str(e)}"
 
+def is_valid_url(url: str) -> bool:
+    """Lightweight URL validation that tolerates sites blocking HEAD/GET probes."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return False
+
+        # Network probes can fail due to rate limits or blocks. Treat connectivity issues
+        # as non-fatal so we don't drop valid cards that should render and autosave.
+        try:
+            resp = httpx.head(url, follow_redirects=True, timeout=5)
+            if resp.status_code < 400:
+                return True
+
+            resp = httpx.get(url, follow_redirects=True, timeout=5)
+            return resp.status_code < 400
+        except Exception as probe_err:
+            print(f"URL probe warning for {url}: {probe_err}")
+            return True
+    except Exception as e:
+        print(f"URL validation failed for {url}: {e}")
+        return False
+
+
+def normalize_signal_metadata(tool_args: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize optional metadata fields passed from the assistant."""
+    tool_args["source_region"] = tool_args.get("sourceRegion") or tool_args.get("region") or tool_args.get("country")
+    tool_args["source_date"] = tool_args.get("published_date") or tool_args.get("sourceDate") or tool_args.get("date")
+    return tool_args
+
+
 def craft_widget_response(tool_args):
     """Standardizes the card data for the frontend."""
-    url = tool_args.get("sourceURL") or tool_args.get("url")
+
+    # Accept the contract field (final_url) while keeping backward compatibility with url/sourceURL
+    url = (
+        tool_args.get("final_url")
+        or tool_args.get("finalURL")
+        or tool_args.get("url")
+        or tool_args.get("sourceURL")
+        or tool_args.get("source_url")
+        or tool_args.get("sourceUrl")
+        or tool_args.get("link")
+    )
 
     # Cards must include tool-provided URLs to comply with the anti-hallucination policy.
     if not url:
         print("❌ Missing URL in tool output; skipping card to avoid unverifiable links.")
         return None
-    
-    tool_args["final_url"] = url
-    tool_args["ui_type"] = "signal_card"
-    return tool_args
+
+    if not is_valid_url(url):
+        print(f"❌ Unreachable or invalid URL rejected: {url}")
+        return None
+
+    normalized = normalize_signal_metadata(tool_args)
+    normalized["final_url"] = url
+    normalized["url"] = url
+    normalized["ui_type"] = "signal_card"
+    return normalized
 
 # --- DATA MODELS ---
 
@@ -393,7 +489,6 @@ class ChatRequest(BaseModel):
 class SaveSignalRequest(BaseModel):
     title: str
     score: int
-    archetype: str
     hook: str
     url: str
     mission: Optional[str] = ""
@@ -404,22 +499,18 @@ class SaveSignalRequest(BaseModel):
     user_rating: Optional[int] = 3
     user_status: Optional[str] = "Pending"
     user_comment: Optional[str] = ""
+    shareable: Optional[str] = "Maybe"
+    feedback: Optional[str] = ""
 
 
 class UpdateSignalRequest(BaseModel):
     url: Optional[str] = ""
     title: Optional[str] = ""
     user_rating: Optional[int] = 3
-    user_status: Optional[str] = "Pending"
+    user_status: Optional[str] = "Reviewed"
     user_comment: Optional[str] = ""
-
-
-class UpdateSignalRequest(BaseModel):
-    url: Optional[str] = ""
-    title: Optional[str] = ""
-    user_rating: Optional[int] = 0
-    user_status: Optional[str] = "Pending"
-    user_comment: Optional[str] = ""
+    shareable: Optional[str] = "Maybe"
+    feedback: Optional[str] = ""
 
 # --- ENDPOINTS ---
 
@@ -451,9 +542,11 @@ def update_signal(update: UpdateSignalRequest):
         existing = {
             "title": update.title or "",
             "url": update.url or "",
-            "user_rating": update.user_rating or 0,
+            "user_rating": update.user_rating or 3,
             "user_status": update.user_status or "Pending",
-            "user_comment": update.user_comment or ""
+            "user_comment": update.user_comment or "",
+            "shareable": update.shareable or "Maybe",
+            "feedback": update.feedback or (update.user_comment or "")
         }
 
         if not existing["title"] and not existing["url"]:
@@ -473,7 +566,6 @@ def update_signal(update: UpdateSignalRequest):
             merged = {
                 "title": match.get("Title", existing["title"]),
                 "score": match.get("Score", 0),
-                "archetype": match.get("Archetype", ""),
                 "hook": match.get("Hook", ""),
                 "url": match.get("URL", existing["url"]),
                 "mission": match.get("Mission", ""),
@@ -483,7 +575,9 @@ def update_signal(update: UpdateSignalRequest):
                 "score_evidence": match.get("Score_Evidence", 0),
                 "user_rating": existing["user_rating"],
                 "user_status": existing["user_status"],
-                "user_comment": existing["user_comment"]
+                "user_comment": existing["user_comment"],
+                "shareable": existing.get("shareable") or match.get("Shareable", "Maybe"),
+                "feedback": existing.get("feedback") or match.get("Feedback", match.get("User_Comment", ""))
             }
             upsert_signal(merged)
             return {"status": "updated"}
@@ -494,7 +588,9 @@ def update_signal(update: UpdateSignalRequest):
             "url": existing["url"],
             "user_rating": existing["user_rating"],
             "user_status": existing["user_status"],
-            "user_comment": existing["user_comment"]
+            "user_comment": existing["user_comment"],
+            "shareable": existing.get("shareable", "Maybe"),
+            "feedback": existing.get("feedback", existing["user_comment"])
         })
         return {"status": "created"}
     except HTTPException:
@@ -512,6 +608,7 @@ async def chat_endpoint(req: ChatRequest):
         existing_titles = []
         existing_urls: Set[str] = set()
         learning_prompt = ""
+        feedback_summary = ""
         requested_signal_count = infer_requested_signal_count(req.message)
         mission_keyword_prompt = get_mission_keywords(req.message, requested_signal_count)
         topic_adjacent_keywords = get_topic_adjacent_keywords(req.message)
@@ -523,11 +620,21 @@ async def chat_endpoint(req: ChatRequest):
                 existing_titles = [r.get("Title", "") for r in records][-80:]
                 existing_urls = {str(r.get("URL", "")).strip().lower() for r in records if r.get("URL")}
                 learning_prompt = get_learning_examples()
+                feedback_summary = get_feedback_summary()
         except Exception as e:
             print(f"Context Fetch Warning: {e}")
 
         # 2. PROMPT CONSTRUCTION
         prompt = req.message
+
+        prompt += "\n\nROLE: You are Nesta's Discovery Hub Lead Foresight Researcher. Operate as a research engine (not a writer) and use British English throughout."
+        prompt += "\n\nNON-NEGOTIABLE WORKFLOW: You have no memory—every signal must come from fresh 'perform_web_search' calls within the current time horizon. If no direct article URL is found, discard the candidate and keep searching."
+        prompt += ("\n\nTOOL CONTRACT (display_signal_card): title (<=8 words), score (0-100), score_evocativeness (0-10), "
+                    "score_novelty (0-10), score_evidence (0-10), hook (75-100 words using the Deep Hook 3-sentence format), "
+                    "final_url, source_country, mission (choose from list), lenses (comma-separated). Additional properties are not allowed.")
+        prompt += ("\n\nSCORING: Calculate novelty, evidence, and evocativeness using the provided rubric (distance from mainstream, reality vs rumour, shock factor)."
+                    " Use these to derive the total quality score you return."
+        )
         
         # ✅ NEW: STRICT ANTI-HALLUCINATION INJECTION
         prompt += """
@@ -569,6 +676,10 @@ async def chat_endpoint(req: ChatRequest):
         if learning_prompt:
             prompt += f"\n\n{learning_prompt}"
             prompt += "\nINSTRUCTION: Analyze the 'User Notes' and style of the examples above. Adjust your search strategy to match this taste profile."
+
+        if feedback_summary:
+            prompt += f"\n\n{feedback_summary}"
+            prompt += "\nINSTRUCTION: Prioritize patterns marked 'Yes' and avoid traits called out as negative. Improve results using feedback themes."
 
         prompt += "\n\nSYSTEM INSTRUCTION: You currently have 0 verified signals. You MUST use the 'perform_web_search' tool to find real articles before generating any cards. Do not generate cards from memory."
 
@@ -660,7 +771,6 @@ async def chat_endpoint(req: ChatRequest):
                                 upsert_signal({
                                     "title": processed_card.get("title"),
                                     "score": processed_card.get("score", 0),
-                                    "archetype": processed_card.get("archetype", ""),
                                     "hook": processed_card.get("hook", ""),
                                     "url": processed_card.get("final_url", ""),
                                     "mission": processed_card.get("mission", ""),
@@ -668,7 +778,10 @@ async def chat_endpoint(req: ChatRequest):
                                     "score_evocativeness": processed_card.get("score_evocativeness", 0),
                                     "score_novelty": processed_card.get("score_novelty", 0),
                                     "score_evidence": processed_card.get("score_evidence", 0),
-                                    "user_status": "Pending"
+                                    "user_status": "Pending",
+                                    "user_rating": 3,
+                                    "shareable": "Maybe",
+                                    "feedback": ""
                                 })
                             except Exception as e:
                                 print(f"Autosave Warning: {e}")
