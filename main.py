@@ -413,24 +413,20 @@ async def perform_google_search(query, date_restrict="m1", requested_results: in
             return f"Search Exception: {str(e)}"
 
 def is_valid_url(url: str) -> bool:
-    """Lightweight URL validation that tolerates sites blocking HEAD/GET probes."""
+    """Lightweight URL validation plus a fast reachability check to cut hallucinated links."""
     try:
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return False
 
-        # Network probes can fail due to rate limits or blocks. Treat connectivity issues
-        # as non-fatal so we don't drop valid cards that should render and autosave.
-        try:
-            resp = httpx.head(url, follow_redirects=True, timeout=5)
-            if resp.status_code < 400:
-                return True
-
-            resp = httpx.get(url, follow_redirects=True, timeout=5)
-            return resp.status_code < 400
-        except Exception as probe_err:
-            print(f"URL probe warning for {url}: {probe_err}")
+        # Quick HEAD request with a tight timeout; follow redirects to catch moved pages.
+        resp = httpx.head(url, follow_redirects=True, timeout=5)
+        if resp.status_code < 400:
             return True
+
+        # Some sites block HEAD; fall back to a lightweight GET.
+        resp = httpx.get(url, follow_redirects=True, timeout=5)
+        return resp.status_code < 400
     except Exception as e:
         print(f"URL validation failed for {url}: {e}")
         return False
@@ -468,7 +464,6 @@ def craft_widget_response(tool_args):
 
     normalized = normalize_signal_metadata(tool_args)
     normalized["final_url"] = url
-    normalized["url"] = url
     normalized["ui_type"] = "signal_card"
     return normalized
 
@@ -507,7 +502,7 @@ class UpdateSignalRequest(BaseModel):
     url: Optional[str] = ""
     title: Optional[str] = ""
     user_rating: Optional[int] = 3
-    user_status: Optional[str] = "Reviewed"
+    user_status: Optional[str] = "Pending"
     user_comment: Optional[str] = ""
     shareable: Optional[str] = "Maybe"
     feedback: Optional[str] = ""
@@ -562,25 +557,25 @@ def update_signal(update: UpdateSignalRequest):
                 match = rec
                 break
 
-        if match:
-            merged = {
-                "title": match.get("Title", existing["title"]),
-                "score": match.get("Score", 0),
-                "hook": match.get("Hook", ""),
-                "url": match.get("URL", existing["url"]),
-                "mission": match.get("Mission", ""),
-                "lenses": match.get("Lenses", ""),
-                "score_evocativeness": match.get("Score_Evocativeness", 0),
-                "score_novelty": match.get("Score_Novelty", 0),
-                "score_evidence": match.get("Score_Evidence", 0),
-                "user_rating": existing["user_rating"],
-                "user_status": existing["user_status"],
-                "user_comment": existing["user_comment"],
-                "shareable": existing.get("shareable") or match.get("Shareable", "Maybe"),
-                "feedback": existing.get("feedback") or match.get("Feedback", match.get("User_Comment", ""))
-            }
-            upsert_signal(merged)
-            return {"status": "updated"}
+            if match:
+                merged = {
+                    "title": match.get("Title", existing["title"]),
+                    "score": match.get("Score", 0),
+                    "hook": match.get("Hook", ""),
+                    "url": match.get("URL", existing["url"]),
+                    "mission": match.get("Mission", ""),
+                    "lenses": match.get("Lenses", ""),
+                    "score_evocativeness": match.get("Score_Evocativeness", 0),
+                    "score_novelty": match.get("Score_Novelty", 0),
+                    "score_evidence": match.get("Score_Evidence", 0),
+                    "user_rating": existing["user_rating"],
+                    "user_status": existing["user_status"],
+                    "user_comment": existing["user_comment"],
+                    "shareable": existing.get("shareable") or match.get("Shareable", "Maybe"),
+                    "feedback": existing.get("feedback") or match.get("Feedback", match.get("User_Comment", ""))
+                }
+                upsert_signal(merged)
+                return {"status": "updated"}
 
         # If not found, save as new pending entry
         upsert_signal({

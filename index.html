@@ -537,6 +537,7 @@
             const sourceDate = formatMonthYear(data.source_date || data.published_date || data.date);
             const dateChip = sourceDate ? `<span class="region-chip bg-[#97D9E3]/30 border-[#97D9E3] text-[#0F294A]">🗓️ ${sourceDate}</span>` : '';
             const qualityBadgeRow = buildQualityBadges(data);
+            const qualityScore = Math.min(100, Math.round(((sEvo + sNov + sEvi) / 30) * 100));
             const sourceTags = [];
             if (data.source_type) sourceTags.push(data.source_type);
             if (Array.isArray(data.source_types)) sourceTags.push(...data.source_types);
@@ -549,39 +550,56 @@
                     <div class="glass-panel bg-white/95 border-2 border-black p-6 relative hover:border-[#9A1BBE] transition-colors rounded-xl shadow-lg">
 
                         <div class="flex justify-between items-start mb-4 border-b border-gray-200 pb-3">
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
-                                    ${sourceTagHtml}
-                                    ${regionChip}
-                                    ${dateChip}
-                                </div>
-                                ${qualityBadgeRow ? `<div class="flex flex-wrap gap-2">${qualityBadgeRow}</div>` : ''}
+                            <div class="flex items-center gap-2">
+                                ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
+                                <div class="pill pill-ghost">Signal Quality</div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <div class="min-w-[190px] bg-white/70 border border-gray-200 rounded-lg p-2 shadow-sm">
-                                    <div class="flex justify-between items-center text-[10px] font-black text-[#0F294A] mb-1 uppercase tracking-[0.12em]">
-                                        <span>Signal Quality</span>
-                                        <span class="font-mono text-xs px-2 py-1 rounded-md ${scoreClass}">${qualityScore}/100</span>
-                                    </div>
-                                    <div class="quality-bar mb-2">
-                                        <div style="width:${qualityScore}%; height:8px; border-radius:6px; background: linear-gradient(90deg, #18A48C, #97D9E3, #9A1BBE);"></div>
-                                    </div>
-                                    <div class="grid grid-cols-3 gap-2 text-[9px] text-[#0F294A] font-bold">
-                                        <div class="flex flex-col gap-0.5"><span class="uppercase tracking-widest">Evoc.</span><span class="font-mono text-xs text-black">${sEvoRaw}/10</span></div>
-                                        <div class="flex flex-col gap-0.5"><span class="uppercase tracking-widest">Novel</span><span class="font-mono text-xs text-black">${sNovRaw}/10</span></div>
-                                        <div class="flex flex-col gap-0.5"><span class="uppercase tracking-widest">Evidence</span><span class="font-mono text-xs text-black">${sEviRaw}/10</span></div>
+                            <div class="flex items-center gap-2">
+                                <div class="relative group/score cursor-help">
+                                    <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1 rounded-md">⚡ ${data.score}/100</div>
+                                    <div class="absolute bottom-full right-0 mb-2 score-tooltip bg-white/95 text-[#0F294A] p-3 text-[10px] font-semibold tracking-normal hidden group-hover/score:block border-2 border-[#9A1BBE] z-50 shadow-xl rounded-lg">
+                                        <div class="mb-2 text-[11px] font-bold uppercase text-[#9A1BBE]">Scoring breakdown</div>
+                                        <div class="flex justify-between mb-1"><span>Evocativeness (surprise)</span> <span class="font-mono">${sEvo}/10</span></div>
+                                        <div class="flex justify-between mb-1"><span>Novelty (niche sources)</span> <span class="font-mono">${sNov}/10</span></div>
+                                        <div class="flex justify-between"><span>Evidence (verifiable)</span> <span class="font-mono">${sEvi}/10</span></div>
+                                        <div class="mt-2 text-[9px] text-[#0F294A]">Hover to see why this score was assigned.</div>
                                     </div>
                                     <div class="text-[10px] text-gray-500 mt-1">Overall derived from these sub-scores (equal weighting).</div>
+                                </div>
+                                <div class="min-w-[140px]">
+                                    <div class="flex justify-between items-center text-[10px] font-bold text-[#0F294A] mb-1">
+                                        <span>Signal Quality</span>
+                                        <span class="font-mono">${qualityScore}%</span>
+                                    </div>
+                                    <div class="quality-bar">
+                                        <div style="width:${qualityScore}%; height:8px; border-radius:6px; background: linear-gradient(90deg, #18A48C, #97D9E3, #9A1BBE);"></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-1 text-[9px] text-gray-500 mt-1">
+                                        <span>Evoc.</span><span>Novel</span><span>Evidence</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <h3 class="font-bold text-black text-xl leading-tight mb-3 group-hover:text-[#9A1BBE] transition-colors"><a href="${data.final_url}" target="_blank" class="hover:underline">${data.title}</a></h3>
                         <p class="text-[15px] text-gray-800 mb-5 leading-relaxed font-medium bg-[#f8f8f8] border border-gray-200 p-3 rounded-lg shadow-sm">${data.hook}</p>
-                        <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}${sourceTagHtml}</div>
+                        <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}</div>
 
                         <div class="bg-gray-50 border-2 border-gray-200 p-3 mb-4 text-xs rounded-lg">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-bold uppercase text-gray-500 text-[9px] tracking-widest">Review</span>
+                                <div class="flex gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status-${idx}" value="Accepted" class="peer hidden" checked>
+                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#18A48C] hover:text-[#18A48C]">Accept</span>
+                                    </label>
+                                    <span class="text-gray-300">|</span>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="status-${idx}" value="Rejected" class="peer hidden">
+                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#EB003B] hover:text-[#EB003B]">Reject</span>
+                                    </label>
+                                </div>
+                            </div>
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center justify-between">
                                     <span class="font-bold text-[10px] text-[#0F294A] uppercase tracking-widest">Shareable?</span>
@@ -592,8 +610,7 @@
                                     </div>
                                 </div>
                                 <input type="hidden" id="shareable-${idx}" value="Maybe">
-                                <label class="font-bold text-[9px] uppercase text-gray-500">Feedback</label>
-                                <textarea id="comment-${idx}" placeholder="How should this improve?" class="w-full mt-1 p-2 border border-gray-300 bg-white text-[10px] focus:outline-none focus:border-[#9A1BBE] rounded" rows="2"></textarea>
+                                <textarea id="comment-${idx}" placeholder="Optional feedback for the researcher" class="w-full mt-1 p-2 border border-gray-300 bg-white text-[10px] focus:outline-none focus:border-[#9A1BBE] rounded" rows="2"></textarea>
                             </div>
                         </div>
 
@@ -613,10 +630,10 @@
             btn.innerHTML = `SAVING...`;
 
             // Collect feedback
+            const status = document.querySelector(`input[name="status-${idx}"]:checked`).value;
             const shareable = document.getElementById(`shareable-${idx}`).value;
             const feedback = document.getElementById(`comment-${idx}`).value;
             const rating = 3;
-            const status = 'Reviewed';
 
             try {
                 const res = await fetch(`${API_BASE}/api/save`, {
@@ -685,7 +702,7 @@
                 const res = await fetch(`${API_BASE}/api/update`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Reviewed' })
+                    body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Accepted' })
                 });
                 if(res.ok) {
                     refreshDatabase();
