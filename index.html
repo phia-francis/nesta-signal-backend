@@ -11,12 +11,20 @@
                 extend: {
                     colors: {
                         nesta: {
-                            blue: '#0000FF',      /* Primary Interaction */
-                            teal: '#00C3E8',      /* Highlights/Badges */
-                            red: '#F06432',       /* Alerts */
-                            dark: '#0F294A',      /* "Blue Zodiac" */
-                            black: '#000000',
-                            grey: '#F2F2F2',
+                            blue: '#0000FF',      /* Core Brand */
+                            black: '#000000',     /* Core Text */
+                            white: '#FFFFFF',     /* Core BG */
+                            
+                            /* Secondary / Missions */
+                            teal: '#00C3E8',
+                            red: '#F06432',
+                            yellow: '#FFF100',
+                            green: '#00E34D',
+                            purple: '#9055FF',
+                            
+                            /* UI Neutrals */
+                            dark: '#0F294A',      /* Blue Zodiac (Deep) */
+                            grey: '#F2F2F2',      /* Light Grey */
                             'grey-dark': '#333333'
                         }
                     },
@@ -45,7 +53,7 @@
         /* --- NESTA FONTS --- */
         @font-face {
             font-family: 'Zosia Display';
-            src: url('Zosia-Display.woff2') format('woff2');
+            src: url('Zosia-Display.woff2') format('woff2'); 
             font-weight: bold;
             font-style: normal;
         }
@@ -56,7 +64,7 @@
         }
         @font-face {
             font-family: 'Averta';
-            src: url('Averta-Semibold.otf') format('woff2');
+            src: url('Averta-Semibold.otf') format('opentype');
             font-weight: 600;
         }
 
@@ -71,6 +79,11 @@
         .toggle-checkbox:checked + .toggle-label {
             background-color: #0000FF;
         }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #F2F2F2; }
+        ::-webkit-scrollbar-thumb { background: #0000FF; border-radius: 4px; }
     </style>
 </head>
 <body class="text-nesta-black font-body antialiased min-h-screen flex flex-col">
@@ -96,7 +109,7 @@
                 Automated Horizon Scanning Agent
             </p>
             
-            <div class="bg-white p-4 rounded-3xl shadow-soft max-w-4xl transform translate-y-12">
+            <div class="bg-white p-4 rounded-3xl shadow-soft max-w-4xl transform translate-y-12 border-b-4 border-nesta-blue">
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
                     <input type="text" id="topic-input" 
                         placeholder="Enter a topic (e.g., 'Future of synthetic biology')" 
@@ -104,7 +117,7 @@
                         onkeydown="if(event.key === 'Enter') runScan()">
                     
                     <button onclick="runScan()" 
-                        class="bg-nesta-blue hover:bg-blue-700 text-white font-display font-bold text-lg px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg whitespace-nowrap">
+                        class="bg-nesta-blue hover:bg-nesta-dark text-white font-display font-bold text-lg px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg whitespace-nowrap">
                         Scout &rarr;
                     </button>
                 </div>
@@ -136,8 +149,8 @@
     <main class="container mx-auto px-6 pt-24 pb-12 flex-grow">
         
         <div id="status-area" class="mb-8 hidden">
-            <div class="flex items-center gap-3 text-nesta-grey-dark animate-pulse">
-                <div class="w-2 h-2 bg-nesta-red rounded-full"></div>
+            <div class="flex items-center gap-3 text-nesta-dark animate-pulse">
+                <div class="w-3 h-3 bg-nesta-blue rounded-full"></div>
                 <span class="font-semibold" id="status-text">Scouting active...</span>
             </div>
         </div>
@@ -147,7 +160,7 @@
 
     </main>
 
-    <div id="saved-modal" class="fixed inset-0 bg-nesta-dark bg-opacity-90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="saved-modal" class="fixed inset-0 bg-nesta-dark bg-opacity-95 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-3xl">
                 <h2 class="font-display text-2xl font-bold text-nesta-dark">Saved Signals Database</h2>
@@ -168,6 +181,14 @@
 
     <script>
         const API_BASE_URL = "https://nesta-signal-backend.onrender.com"; 
+
+        // MISSION COLOR MAPPING (Based on Nesta Brand)
+        const MISSION_COLORS = {
+            'A Sustainable Future': 'text-nesta-green bg-green-50 border-nesta-green',
+            'A Healthy Life': 'text-nesta-red bg-red-50 border-nesta-red',
+            'A Fairer Start': 'text-nesta-purple bg-purple-50 border-nesta-purple',
+            'General': 'text-nesta-blue bg-blue-50 border-nesta-blue'
+        };
 
         async function runScan() {
             const topic = document.getElementById('topic-input').value;
@@ -221,11 +242,16 @@
         function createSignalCard(signal, index, isSavedView = false) {
             const container = isSavedView ? document.getElementById('saved-list') : document.getElementById('results-area');
             
-            // Logic: Country & Score Color
+            // Logic: Country
             const country = signal.source_country || "Global";
-            let scoreColor = "bg-gray-100 text-gray-600";
-            if (signal.score >= 80) scoreColor = "bg-nesta-teal text-nesta-black";
-            else if (signal.score >= 50) scoreColor = "bg-blue-50 text-nesta-blue";
+            
+            // Logic: Mission Color
+            const missionKey = signal.mission || 'General';
+            // Default to General (Blue) if mission string doesn't match exactly
+            const themeClass = MISSION_COLORS[missionKey] || MISSION_COLORS['General'];
+            
+            // Extract just the text color for the score badge
+            const accentColor = themeClass.split(' ')[0]; 
 
             // Lenses Parsing
             let lensesHTML = '';
@@ -236,13 +262,13 @@
             }
 
             const cardHTML = `
-                <div class="bg-white rounded-2xl p-6 shadow-soft hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in-up flex flex-col h-full ${isSavedView ? 'border border-gray-200' : ''}" style="animation-delay: ${index * 150}ms">
+                <div class="bg-white rounded-2xl p-6 shadow-soft hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in-up flex flex-col h-full border-t-4 ${themeClass.replace(/text-|bg-|border-/g, 'border-').split(' ').pop()}" style="animation-delay: ${index * 150}ms">
                     
                     <div class="flex justify-between items-start mb-4">
                         <span class="font-body text-xs font-bold uppercase tracking-widest text-gray-400 border border-gray-100 px-2 py-1 rounded">
                             ${country}
                         </span>
-                        <span class="${scoreColor} font-body text-xs font-bold px-3 py-1 rounded-full">
+                        <span class="${accentColor} bg-opacity-10 bg-gray-100 font-body text-xs font-bold px-3 py-1 rounded-full">
                             ${signal.score} / 100
                         </span>
                     </div>
@@ -262,20 +288,20 @@
                     <div class="grid grid-cols-3 gap-2 mb-6 bg-gray-50 p-2 rounded-lg text-center">
                         <div>
                             <div class="text-[10px] text-gray-400 uppercase font-bold">Novelty</div>
-                            <div class="text-nesta-blue font-bold text-sm">${signal.score_novelty || '-'}</div>
+                            <div class="${accentColor} font-bold text-sm">${signal.score_novelty || '-'}</div>
                         </div>
                         <div>
                             <div class="text-[10px] text-gray-400 uppercase font-bold">Evidence</div>
-                            <div class="text-nesta-blue font-bold text-sm">${signal.score_evidence || '-'}</div>
+                            <div class="${accentColor} font-bold text-sm">${signal.score_evidence || '-'}</div>
                         </div>
                         <div>
                             <div class="text-[10px] text-gray-400 uppercase font-bold">Evocative</div>
-                            <div class="text-nesta-blue font-bold text-sm">${signal.score_evocativeness || '-'}</div>
+                            <div class="${accentColor} font-bold text-sm">${signal.score_evocativeness || '-'}</div>
                         </div>
                     </div>
 
                     <div class="pt-4 border-t border-gray-100 mt-auto flex items-center justify-between">
-                        <span class="text-nesta-blue text-xs font-bold uppercase tracking-wide truncate max-w-[120px]">
+                        <span class="${themeClass} bg-opacity-10 border border-opacity-20 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded">
                             ${signal.mission || 'Signal'}
                         </span>
                         
@@ -300,7 +326,6 @@
         }
 
         function saveSignal(btnElement, signalData) {
-            // Optimistic UI
             const originalText = btnElement.innerHTML;
             btnElement.innerHTML = `<span class="animate-pulse">Saving...</span>`;
             
@@ -312,7 +337,7 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success' || data.status === 'saved' || data.status === 'updated') {
-                    btnElement.innerHTML = `<span class="text-nesta-teal">Saved!</span>`;
+                    btnElement.innerHTML = `<span class="text-nesta-green">Saved!</span>`;
                     btnElement.disabled = true;
                 } else {
                     alert("Error: " + data.error);
@@ -332,12 +357,11 @@
             
             try {
                 const res = await fetch(`${API_BASE_URL}/api/saved`);
-                const data = await res.json(); // Returns array directly based on backend logic
+                const data = await res.json();
                 list.innerHTML = '';
                 
                 if(Array.isArray(data) && data.length > 0) {
                     data.forEach((signal, i) => {
-                        // Normalize keys from Sheet (Capitalized) to UI (Lowercase)
                         const normalized = {
                             title: signal.Title,
                             score: signal.Score,
@@ -356,7 +380,7 @@
                     list.innerHTML = `<div class="text-center text-gray-500 py-10">No saved signals yet.</div>`;
                 }
             } catch (e) {
-                list.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load database.</div>`;
+                list.innerHTML = `<div class="text-center text-nesta-red py-10">Failed to load database.</div>`;
             }
         }
 
