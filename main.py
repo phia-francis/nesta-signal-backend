@@ -162,36 +162,79 @@ def get_saved_signals():
 
 @app.post("/api/save")
 def save_signal(signal: SaveSignalRequest):
+    """
+    Saves a signal to Google Sheets with SAFE MERGING.
+    If the row exists, it prioritizes existing data over empty/default incoming data.
+    """
     sheet = connect_db()
-    if not sheet: raise HTTPException(status_code=500, detail="Database Unavailable")
-    ensure_sheet_headers(sheet)
+    if not sheet:
+        raise HTTPException(status_code=500, detail="Database Unavailable")
     
-    # 1. Deduplication Logic (Restored from your file)
+    ensure_sheet_headers(sheet)
+
     try:
+        # 1. Fetch all records to check for duplicates
         records = sheet.get_all_records()
         target_url = signal.final_url.strip().lower()
         row_idx = None
+        existing_record = {}
         
         for i, r in enumerate(records):
+            # +2 because Google Sheets is 1-indexed and has a header row
             if str(r.get('URL','')).strip().lower() == target_url:
-                row_idx = i + 2 # +2 for header and 0-index
+                row_idx = i + 2 
+                existing_record = r
                 break
         
-        # 2. Strict Column Mapping (Updated for Source_Country)
-        row_data = [
-            signal.title, signal.score, signal.hook, signal.final_url, 
-            signal.mission, signal.lenses, 
-            signal.score_evocativeness, signal.score_novelty, signal.score_evidence, 
-            signal.source_country, # <--- Inserted Correctly
-            signal.user_rating, signal.user_status, signal.user_comment, signal.shareable, ""
-        ]
-        
+        # 2. DEFENSIVE MERGE LOGIC
+        # If the signal exists, use the existing data if the new data is missing/empty.
         if row_idx:
+            # Logic: New Value OR Old Value (if New is empty)
+            final_title = signal.title or existing_record.get('Title', '')
+            final_score = signal.score if signal.score != 0 else existing_record.get('Score', 0)
+            final_hook = signal.hook or existing_record.get('Hook', '')
+            final_mission = signal.mission or existing_record.get('Mission', '')
+            final_lenses = signal.lenses or existing_record.get('Lenses', '')
+            
+            # Sub-scores
+            final_evoc = signal.score_evocativeness if signal.score_evocativeness != 0 else existing_record.get('Score_Evocativeness', 0)
+            final_novel = signal.score_novelty if signal.score_novelty != 0 else existing_record.get('Score_Novelty', 0)
+            final_evidence = signal.score_evidence if signal.score_evidence != 0 else existing_record.get('Score_Evidence', 0)
+            
+            # Country
+            final_country = signal.source_country if signal.source_country != "Global" else existing_record.get('Source_Country', 'Global')
+
+            # User Data (Always prefer new user input if provided, otherwise keep old)
+            final_rating = signal.user_rating if signal.user_rating != 3 else existing_record.get('User_Rating', 3)
+            final_status = signal.user_status if signal.user_status != "Pending" else existing_record.get('User_Status', 'Pending')
+            final_comment = signal.user_comment or existing_record.get('User_Comment', '')
+            final_shareable = signal.shareable if signal.shareable != "Maybe" else existing_record.get('Shareable', 'Maybe')
+
+            # Reconstruct the row with SAFE data
+            row_data = [
+                final_title, final_score, final_hook, signal.final_url, 
+                final_mission, final_lenses, 
+                final_evoc, final_novel, final_evidence, 
+                final_country, 
+                final_rating, final_status, final_comment, final_shareable, ""
+            ]
+            
+            print(f"♻️ Safe Update at row {row_idx}")
             sheet.update(range_name=f"A{row_idx}:O{row_idx}", values=[row_data])
             return {"status": "updated"}
+
         else:
+            # 3. NEW ROW (Just append what we have)
+            row_data = [
+                signal.title, signal.score, signal.hook, signal.final_url, 
+                signal.mission, signal.lenses, 
+                signal.score_evocativeness, signal.score_novelty, signal.score_evidence, 
+                signal.source_country, 
+                signal.user_rating, signal.user_status, signal.user_comment, signal.shareable, ""
+            ]
             sheet.append_row(row_data)
             return {"status": "saved"}
+            
     except Exception as e:
         print(f"Save Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
