@@ -3,818 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nesta Signal Scout Pro</title>
+    <title>Nesta Signal Scout</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nesta: {
+                            blue: '#0000FF',      /* Primary Interaction */
+                            teal: '#00C3E8',      /* Highlights/Badges */
+                            red: '#F06432',       /* Alerts */
+                            dark: '#0F294A',      /* "Blue Zodiac" for Backgrounds */
+                            black: '#000000',
+                            grey: '#F2F2F2',      /* Soft Backgrounds */
+                            'grey-dark': '#333333'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Zosia Display', 'sans-serif'], /* For Headings */
+                        body: ['Averta', 'sans-serif'],           /* For Text */
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(0, 0, 0, 0.05)',
+                        'hover': '0 10px 25px rgba(0, 0, 255, 0.1)', /* Blue tinted shadow */
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* NESTA BRAND GUIDELINES */
-        :root {
-            --nesta-purple: #9A1BBE;
-            --nesta-green: #18A48C;
-            --nesta-aqua: #97D9E3;
-            --nesta-navy: #0F294A;
-            --nesta-black: #000000;
-            --nesta-white: #FFFFFF;
+        /* --- NESTA FONTS --- */
+        @font-face {
+            font-family: 'Zosia Display';
+            src: url('Zosia-Display.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Averta';
+            src: url('Averta-Regular.otf') format('opentype');
+            font-weight: normal;
+        }
+        @font-face {
+            font-family: 'Averta';
+            src: url('Averta-Semibold.woff2') format('woff2');
+            font-weight: 600;
         }
 
         body {
-            font-family: 'Inter', 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
-            background: radial-gradient(circle at 20% 20%, rgba(151, 217, 227, 0.3), transparent 30%),
-                        radial-gradient(circle at 80% 0%, rgba(154, 27, 190, 0.1), transparent 35%),
-                        linear-gradient(135deg, #fdfefe 0%, #eef2f7 100%);
-            color: var(--nesta-black);
-            min-height: 100vh;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-
-        .nesta-checkbox {
-            appearance: none; width: 14px; height: 14px;
-            border: 2px solid var(--nesta-black); cursor: pointer;
-            display: inline-block; vertical-align: middle; margin-right: 4px;
-        }
-        .nesta-checkbox:checked { background-color: var(--nesta-green); }
-
-        .choice-pill {
-            border-radius: 12px;
-            border: 1px solid rgba(15,41,74,0.15);
-            padding: 8px 12px;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: rgba(255,255,255,0.85);
-        }
-        .choice-pill.active {
-            border-color: #9A1BBE;
-            color: #0F294A;
-            box-shadow: 0 10px 30px rgba(154,27,190,0.18);
-            background: linear-gradient(120deg, rgba(151,217,227,0.25), rgba(154,27,190,0.08));
-        }
-
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.7); border-radius: 999px; }
-        ::-webkit-scrollbar-thumb { background: var(--nesta-navy); border-radius: 999px; border: 2px solid rgba(255,255,255,0.8); }
-        ::-webkit-scrollbar-thumb:hover { background: var(--nesta-purple); }
-        
-        /* Slider */
-        .range-slider { -webkit-appearance: none; background: transparent; }
-        .range-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 16px; height: 16px; background: var(--nesta-purple); 
-            cursor: pointer; border: none; margin-top: -6px;
-        }
-        .range-slider::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; background: #ddd; border: none;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        .border-nesta { border: 3px solid var(--nesta-black); border-radius: 14px; box-shadow: 0 14px 28px rgba(15,41,74,0.1); }
-        
-        .collapsible-content { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; overflow: hidden; max-height: 0; opacity: 0; }
-        .collapsible-content.open { max-height: 500px; opacity: 1; }
-        .glass-panel { background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); }
-        .pill { border-radius: 999px; border: 1px solid var(--nesta-black); padding: 2px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-        .pill-ghost { background: rgba(151,217,227,0.2); }
-        .glow-button { box-shadow: 0 10px 25px rgba(154,27,190,0.25); position: relative; overflow: hidden; }
-        .glow-button::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: translateX(-100%); transition: transform 0.6s ease; }
-        .glow-button:hover::after { transform: translateX(100%); }
-        .metric-chip { background: rgba(15,41,74,0.05); border: 1px solid rgba(15,41,74,0.15); border-radius: 10px; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; color: var(--nesta-navy); }
-        .metric-chip.active {
-            background: rgba(154,27,190,0.15);
-            border-color: rgba(154,27,190,0.6);
-            color: #0F294A;
-            box-shadow: 0 6px 14px rgba(154,27,190,0.15);
-        }
-
-        .quality-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); padding: 4px 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(151,217,227,0.15); }
-        .quality-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
-        .region-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(15,41,74,0.06); border: 1px solid rgba(15,41,74,0.12); border-radius: 12px; padding: 6px 10px; font-size: 11px; font-weight: 700; }
-        .quality-bar { height: 8px; border-radius: 6px; background: linear-gradient(90deg, #18A48C, #97D9E3, #9A1BBE); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
-
-        .signal-title,
-        .signal-description {
-            font-family: 'Century Gothic', CenturyGothic, AppleGothic, 'Inter', sans-serif;
+            background-color: #FAFAFA;
         }
         
-        .badge-source {
-            background: rgba(0,0,0,0.08);
-            border: 1px solid rgba(0,0,0,0.15);
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #0F294A;
-        }
-        
-        .mission-tag {
-            color: #fff;
-            font-size: 11px;
-            letter-spacing: 0.08em;
-            font-weight: 800;
-            text-transform: uppercase;
-            padding: 4px 8px;
-            border-radius: 999px;
-        }
-        
-        .score-tooltip {
-            width: 240px;
-            backdrop-filter: blur(8px);
-        }
-        
-        .progress-track {
-            background: rgba(15,41,74,0.08);
-            border: 1px solid rgba(15,41,74,0.2);
-            border-radius: 999px;
-            height: 6px;
-            overflow: hidden;
-            width: 220px;
-        }
-        
-        .progress-bar {
-            background: linear-gradient(90deg, #9A1BBE, #18A48C);
-            height: 100%;
-            width: 12%;
-            transition: width 0.25s ease;
-        }
-        
-        .subtle-pulse {
-            animation: pulse 1.8s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 18px;
-            right: 18px;
-            background: #0F294A;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 50;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.25s ease, transform 0.25s ease;
-        }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background: #18A48C; color: #0F294A; }
-        .toast.error { background: #EB003B; }
-        .toast.info { background: #9A1BBE; }
-
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
     </style>
 </head>
-<body class="h-screen overflow-hidden selection:bg-[#97D9E3] selection:text-black flex flex-col p-6">
+<body class="text-nesta-black font-body antialiased min-h-screen flex flex-col">
 
-    <div class="flex-1 flex h-full max-w-[1800px] mx-auto gap-4 w-full">
-        
-        <div class="flex-1 flex flex-col h-full min-h-0 gap-4">
+    <header class="bg-nesta-dark text-white pt-12 pb-24 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-nesta-blue rounded-full mix-blend-multiply filter blur-3xl opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
+
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h1 class="font-display text-5xl md:text-6xl font-bold tracking-tight mb-2">
+                        Signal Scout
+                    </h1>
+                    <p class="text-nesta-teal font-body text-lg font-semibold tracking-wide uppercase">
+                        Discovery Hub
+                    </p>
+                </div>
+                <div class="hidden md:block h-12 w-12 bg-white rounded-full flex items-center justify-center">
+                    <span class="font-display text-nesta-blue text-2xl font-bold">N</span>
+                </div>
+            </div>
             
-            <div class="glass-panel border-nesta p-4 relative shrink-0 z-20 shadow-lg">
-                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#97D9E3] via-[#9A1BBE] to-[#0F294A]"></div>
-
-                <div class="flex justify-between items-center mb-3 mt-1 border-b-2 border-black pb-2">
-                    <div class="flex items-center gap-3">
-                        <h2 class="font-bold text-xl tracking-tight text-black leading-none flex items-center gap-2">
-                            <span class="text-[#9A1BBE]">nesta</span> Signal Scout
-                        </h2>
-                        <div class="hidden md:flex gap-2 items-center">
-                            <span class="pill pill-ghost" id="mode-display">Broad Horizon</span>
-                            <span class="pill">Trusted Scan</span>
-                        </div>
-                    </div>
-                    <div class="flex gap-3 items-center">
-                        <button onclick="toggleFilters()" class="text-[9px] font-bold uppercase text-[#9A1BBE] hover:text-[#0F294A] flex items-center gap-1 bg-white px-3 py-1 border border-black hover:shadow-md transition-all rounded-full">
-                            <span id="filter-arrow" style="transform: rotate(90deg);">▶</span> Filters
-                        </button>
-                    </div>
-                </div>
-
-                <div id="filter-section" class="collapsible-content open bg-gray-50 border-b-2 border-black mb-2 -mx-3 px-3 pb-2 text-xs rounded-b-xl">
-                    <div class="flex flex-wrap gap-4 items-center py-2">
-                        <div class="flex flex-col gap-0.5">
-                            <label class="font-bold text-[9px] uppercase text-[#0F294A]">Time Horizon</label>
-                            <select id="time-filter" onchange="updateModeDisplay()" class="bg-white border border-black px-1 py-0.5 text-[10px] font-bold cursor-pointer">
-                                <option value="Past Month" selected>Past Month</option>
-                                <option value="Past 6 Months">Past 6 Months</option>
-                                <option value="Past Year">Past Year</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-1 border-l border-gray-300 pl-3">
-                            <input type="checkbox" id="tech-mode" class="nesta-checkbox" onchange="updateModeDisplay()">
-                            <label for="tech-mode" class="font-bold text-[9px] uppercase cursor-pointer hover:text-[#9A1BBE]">Emerging Tech Only</label>
-                        </div>
-                        <div class="flex gap-2 border-l border-gray-300 pl-3 flex-1">
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Academia" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[9px] font-bold uppercase">Academia</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Industry News" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[9px] font-bold uppercase">News</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer hover:text-[#18A48C]"><input type="checkbox" name="source" value="Startups" class="nesta-checkbox" onchange="updateModeDisplay()"><span class="text-[9px] font-bold uppercase">VC</span></label>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 pb-2">
-                        <button type="button" class="metric-chip active" data-flag="recent" onclick="toggleQualityChip(this)">
-                            <span class="text-[#9A1BBE] text-sm">●</span> Recent (≤30d)
-                        </button>
-                        <button type="button" class="metric-chip" data-flag="niche" onclick="toggleQualityChip(this)">
-                            <span class="text-[#18A48C] text-sm">●</span> Niche sources
-                        </button>
-                        <button type="button" class="metric-chip" data-flag="verified" onclick="toggleQualityChip(this)">
-                            <span class="text-[#0F294A] text-sm">●</span> URL verified
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex gap-3 items-end h-10">
-                    <div class="w-24 shrink-0 flex flex-col justify-end">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[8px] font-bold uppercase text-[#0F294A]">Count</label>
-                            <span id="slider-val" class="text-[10px] font-bold text-[#9A1BBE]">3</span>
-                        </div>
-                        <input type="range" id="signal-count" min="1" max="10" value="3" class="range-slider w-full"
-                            oninput="document.getElementById('slider-val').innerText = this.value">
-                    </div>
-                    <div class="w-40 shrink-0">
-                        <select id="mission-select" class="w-full bg-white border border-black text-black font-bold text-[10px] h-10 px-2 focus:outline-none focus:border-[#9A1BBE] rounded-md shadow-sm">
-                            <option value="All Missions">✨ All Missions</option>
-                            <option value="A Fairer Start">📚 Fairer Start</option>
-                            <option value="A Healthy Life">❤️‍🩹 Healthy Life</option>
-                            <option value="A Sustainable Future">🌳 Sustainable Future</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-1 gap-0 border-nesta h-10 bg-white items-center px-2 rounded-xl">
-                        <input type="text" id="manual-input" placeholder="Topic (Optional - leave blank for broad scan)" class="flex-1 bg-transparent px-2 text-xs font-bold placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:bg-transparent border-none text-black">
-                        <button id="launch-btn" onclick="runScan()" class="bg-[#9A1BBE] text-white hover:bg-[#0F294A] px-5 font-bold uppercase tracking-wider text-[10px] whitespace-nowrap transition-colors flex items-center gap-2 h-8 rounded-md glow-button">Launch <span class="text-xs">↗</span></button>
-                    </div>
-                </div>
+            <div class="bg-white p-2 rounded-2xl shadow-soft flex items-center max-w-2xl transform translate-y-8">
+                <input type="text" id="topic-input" 
+                    placeholder="Enter a topic (e.g., 'Future of synthetic biology')" 
+                    class="flex-1 p-4 bg-transparent border-none focus:ring-0 text-lg text-nesta-dark placeholder-gray-400 font-body"
+                    onkeydown="if(event.key === 'Enter') runScan()">
+                
+                <button onclick="runScan()" 
+                    class="bg-nesta-blue hover:bg-blue-700 text-white font-display font-bold text-lg px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
+                    Scout &rarr;
+                </button>
             </div>
+        </div>
+    </header>
 
-            <div id="chat-box" class="flex-1 bg-[#f9fafb]/80 glass-panel border-nesta p-6 overflow-y-auto space-y-6 relative scroll-smooth min-h-0 shadow-inner">
-                <div class="flex flex-col items-center justify-center h-full text-gray-300 select-none">
-                    <p class="text-6xl mb-4 grayscale opacity-20">📡</p>
-                    <p class="font-bold text-xs text-[#0F294A] tracking-widest uppercase">Ready to Scout</p>
-                </div>
+    <main class="container mx-auto px-6 pt-20 pb-12 flex-grow">
+        
+        <div id="status-area" class="mb-8 hidden">
+            <div class="flex items-center gap-3 text-nesta-grey-dark animate-pulse">
+                <div class="w-2 h-2 bg-nesta-red rounded-full"></div>
+                <span class="font-semibold">Scouting active...</span>
             </div>
         </div>
 
-        <div class="w-64 glass-panel bg-white border-nesta flex flex-col overflow-hidden h-full z-10 shrink-0">
-            <div class="bg-[#0F294A] text-white p-3 flex flex-col gap-1 shrink-0 shadow-md">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold uppercase tracking-wider flex items-center gap-2 text-xs">💾 Vault</h3>
-                    <button id="refresh-btn" onclick="refreshDatabase()" class="text-[9px] font-bold uppercase hover:text-[#97D9E3] transition-colors border border-white px-1.5 py-0.5">Refresh</button>
-                </div>
-                <a id="sheet-link" href="#" target="_blank" class="text-[9px] text-[#97D9E3] hover:text-white underline text-right truncate">View Google Sheet ↗</a>
+        <div id="results-area" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             </div>
-            <div id="db-list" class="flex-1 overflow-y-auto p-3 space-y-3 bg-white min-h-0">
-                <div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-[10px] uppercase font-bold tracking-widest">Empty</span></div>
-            </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-100 py-8 mt-auto">
+        <div class="container mx-auto px-6 text-center text-gray-400 text-sm">
+            <p>&copy; 2025 Nesta Discovery Hub. Built with Signal Scout AI.</p>
         </div>
-    </div>
+    </footer>
 
     <script>
-        const API_BASE_URL = "https://nesta-signal-backend.onrender.com";
-        let currentSignals = [];
-        let currentTimeFilter = "Past Month";
-        const qualityPreferences = { recent: true, niche: false, verified: false };
-        const autoSavedKeys = new Set();
-
-        window.onload = async () => {
-            try {
-                const cfg = await fetch(API_BASE_URL + '/api/config').then(r => r.json());
-                if(cfg.sheet_url) document.getElementById('sheet-link').href = cfg.sheet_url;
-            } catch(e) {}
-            refreshDatabase();
-            updateModeDisplay();
-        };
-
-        function setButtonLoading(btn, isLoading, label = "", loadingLabel = "Loading…") {
-            if (!btn) return;
-            btn.disabled = isLoading;
-            btn.classList.toggle('opacity-60', isLoading);
-            btn.classList.toggle('cursor-not-allowed', isLoading);
-            if (!btn.dataset.original) btn.dataset.original = btn.innerHTML;
-            btn.innerHTML = isLoading ? loadingLabel : (label || btn.dataset.original);
-        }
-
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️'} ${message}`;
-            document.body.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 250);
-            }, 3200);
-        }
-
-        async function autoSaveSignal(data) {
-            const key = data.final_url || data.sourceURL || data.url;
-            if (!key || autoSavedKeys.has(key)) return;
-            autoSavedKeys.add(key);
-            const payload = {
-                title: data.title,
-                score: data.score,
-                hook: data.hook,
-                url: data.final_url || data.sourceURL || data.url,
-                mission: data.mission || "",
-                lenses: data.lenses || "",
-                score_evocativeness: data.score_evocativeness || 0,
-                score_novelty: data.score_novelty || 0,
-                score_evidence: data.score_evidence || 0,
-                user_rating: 3,
-                user_status: 'Autosaved',
-                user_comment: data.user_comment || '',
-                feedback: data.feedback || '',
-                shareable: data.shareable || 'Maybe'
-            };
-            try {
-                const res = await fetch(API_BASE_URL + '/api/save', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error('Autosave failed');
-            } catch (err) {
-                console.error('Autosave failed', err);
-                autoSavedKeys.delete(key);
-            }
-        }
-
-        function toggleQualityChip(el) {
-            const flag = el.dataset.flag;
-            if(!flag) return;
-            const timeFilter = document.getElementById('time-filter').value;
-            if (flag === 'recent' && timeFilter !== 'Past Month') {
-                document.getElementById('time-filter').value = 'Past Month';
-                currentTimeFilter = 'Past Month';
-            }
-            el.classList.toggle('active');
-            qualityPreferences[flag] = el.classList.contains('active');
-            updateModeDisplay();
-        }
-
-        function qualityPreferenceText() {
-            const prefs = [];
-            if (qualityPreferences.recent) prefs.push("recent (≤30d)");
-            if (qualityPreferences.niche) prefs.push("niche/technical sources");
-            if (qualityPreferences.verified) prefs.push("URL verified only");
-            return prefs.length ? `Quality: ${prefs.join(", ")}` : "Quality: standard";
-        }
-
-        function formatSourceLabel(url) {
-            try {
-                const host = new URL(url).hostname.replace(/^www\./, "");
-                const friendlyMap = {
-                    'nationalgeographic': 'National Geographic',
-                    'scientificamerican': 'Scientific American',
-                    'newscientist': 'New Scientist',
-                    'mittechnologyreview': 'MIT Technology Review',
-                    'techcrunch': 'TechCrunch',
-                    'theguardian': 'The Guardian',
-                    'washingtonpost': 'Washington Post',
-                    'wired': 'WIRED'
-                };
-
-                const base = host.split('.')[0];
-                if (friendlyMap[base]) return friendlyMap[base];
-
-                const cleaned = base.replace(/[-_]/g, ' ');
-                const words = cleaned.match(/[a-z]+|\d+/gi) || [];
-                const label = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                if (label.length > 0) return label;
-                return host;
-            } catch (e) {
-                return "";
-            }
-        }
-
-        function regionFromUrl(url, fallbackRegion = "") {
-            try {
-                const parsed = new URL(url);
-                const host = parsed.hostname;
-                const tld = host.split('.').pop()?.toLowerCase();
-                if (fallbackRegion) return fallbackRegion;
-                const map = { uk: 'UK', us: 'US', ca: 'Canada', au: 'Australia', eu: 'EU' };
-                if (tld && map[tld]) return map[tld];
-                return '';
-            } catch (e) { return fallbackRegion || ''; }
-        }
-
-        function flagForRegion(region) {
-            const flags = { 'UK': '🇬🇧', 'US': '🇺🇸', 'Canada': '🇨🇦', 'Australia': '🇦🇺', 'EU': '🇪🇺' };
-            return flags[region] || '🌐';
-        }
-
-        function formatMonthYear(dateString) {
-            if (!dateString) return '';
-            const parsed = new Date(dateString);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-            }
-            return dateString;
-        }
-
-        function buildQualityBadges(data) {
-            const badges = [];
-            const explicitFlags = Array.isArray(data.quality_flags) ? data.quality_flags.map(f => f.toLowerCase()) : [];
-            if (qualityPreferences.niche || (data.score_novelty || 0) >= 8 || explicitFlags.includes('niche')) {
-                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#18A48C"></span> Niche source</span>`);
-            }
-            if (qualityPreferences.verified || (data.score_evidence || 0) >= 8 || explicitFlags.includes('verified')) {
-                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#0F294A"></span> URL verified</span>`);
-            }
-            if ((qualityPreferences.recent && currentTimeFilter === 'Past Month') || explicitFlags.includes('recent')) {
-                badges.push(`<span class="quality-pill"><span class="quality-dot" style="background:#9A1BBE"></span> Recent (≤30d)</span>`);
-            }
-            return badges.join(' ');
-        }
-
-        function toggleFilters() {
-            const section = document.getElementById('filter-section');
-            const arrow = document.getElementById('filter-arrow');
-            section.classList.toggle('open');
-            arrow.style.transform = section.classList.contains('open') ? 'rotate(90deg)' : 'rotate(0deg)';
-        }
-
-        function updateModeDisplay() {
-            const time = document.getElementById('time-filter').value;
-            currentTimeFilter = time;
-            const tech = document.getElementById('tech-mode').checked;
-            const sources = Array.from(document.querySelectorAll('input[name="source"]:checked'));
-            if (time !== 'Past Month') {
-                qualityPreferences.recent = false;
-                document.querySelector('[data-flag="recent"]').classList.remove('active');
-            }
-            let parts = [];
-            if (tech) parts.push("Emerging Tech"); else parts.push("Broad Horizon");
-            if (sources.length > 0) parts.push(`${sources.length} Sources`);
-            parts.push(time);
-            parts.push(qualityPreferenceText());
-            document.getElementById('mode-display').innerText = parts.join(" • ");
-        }
+        const API_BASE_URL = "https://nesta-signal-backend.onrender.com"; 
 
         async function runScan() {
-            const chatBox = document.getElementById('chat-box');
-            const topic = document.getElementById('manual-input').value.trim();
-            const count = document.getElementById('signal-count').value;
-            const mission = document.getElementById('mission-select').value;
-            const timeFilter = document.getElementById('time-filter').value;
-            const techMode = document.getElementById('tech-mode').checked;
-            const sources = Array.from(document.querySelectorAll('input[name="source"]:checked')).map(cb => cb.value);
-            const launchBtn = document.getElementById('launch-btn');
+            const topic = document.getElementById('topic-input').value;
+            if (!topic) return;
 
-            if(chatBox.innerText.includes("Ready to Scout")) chatBox.innerHTML = "";
-
-            let prompt = `Find ${count} distinct innovation signals`;
-            if (topic) prompt += ` related to '${topic}'`;
-            else prompt += ` (perform a broad horizon scan)`;
-            prompt += ". Use the display_signal_card tool for each one.";
-            prompt += ` Focus on sources published within the ${timeFilter} window.`;
-            const qualityNote = qualityPreferenceText();
-            if (qualityNote && qualityNote !== 'Quality: standard') prompt += ` ${qualityNote}.`;
-
-            setButtonLoading(launchBtn, true, '', 'Launching…');
-
-            chatBox.innerHTML += `
-                <div class="flex justify-end animate-fade-in mb-4">
-                    <div class="bg-[#0F294A] text-white p-4 border-l-4 border-[#97D9E3] max-w-[80%] text-xs shadow-md">
-                        <div class="font-bold text-[#97D9E3] mb-1 uppercase tracking-widest border-b border-gray-600 pb-1">Scouting In Progress</div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-                            <div><span class="opacity-60">TARGET:</span> ${count} Signals</div>
-                            <div><span class="opacity-60">MISSION:</span> ${mission}</div>
-                            ${techMode ? `<div class="text-[#97D9E3] font-bold col-span-2">MODE: Emerging Tech Only</div>` : ''}
-                        </div>
-                    </div>
-                </div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            const loaderId = `load-${Date.now()}`;
-            chatBox.innerHTML += `
-                <div id="${loaderId}" class="flex gap-3 items-center text-[#9A1BBE] text-xs ml-1 mt-2 font-bold uppercase animate-fade-in mb-6">
-                    <div class="relative flex items-center justify-center w-6 h-6">
-                        <div class="w-6 h-6 rounded-full border-2 border-[#9A1BBE] animate-spin"></div>
-                        <div class="w-3 h-3 rounded-full bg-[#18A48C] absolute animate-ping"></div>
-                    </div>
-                    <div class="flex flex-col leading-tight text-left gap-1">
-                        <span id="${loaderId}-headline">Scouting</span>
-                        <span id="${loaderId}-status" class="text-[10px] text-[#0F294A] font-normal normal-case">
-                            Curating niche sources...
-                        </span>
-                        <div class="progress-track shrink-0">
-                            <div id="${loaderId}-bar" class="progress-bar"></div>
-                        </div>
-                    </div>
-                </div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            const progressStages = [
-                "Shaping high-friction queries…",
-                "Running web searches…",
-                "Verifying URLs & freshness…",
-                "Scoring novelty & evidence…",
-                "Drafting hooks & implications…"
-            ];
-            let stageIndex = 0;
-            let progressWidth = 12;
-            const progressTimer = setInterval(() => {
-                stageIndex = (stageIndex + 1) % progressStages.length;
-                progressWidth = Math.min(96, progressWidth + 6);
-                const statusEl = document.getElementById(`${loaderId}-status`);
-                const barEl = document.getElementById(`${loaderId}-bar`);
-                if(statusEl) statusEl.textContent = progressStages[stageIndex];
-                if(barEl) barEl.style.width = `${progressWidth}%`;
-            }, 1400);
+            // Show Loading State
+            const container = document.getElementById('results-area');
+            document.getElementById('status-area').classList.remove('hidden');
+            
+            container.innerHTML = `
+                <div class="col-span-full py-20 text-center opacity-0 animate-fade-in-up">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-nesta-blue border-t-transparent mb-4"></div>
+                    <p class="text-xl font-display font-bold text-nesta-dark">Scanning the horizon...</p>
+                    <p class="text-gray-500 mt-2">Checking niche sources for "${topic}"</p>
+                </div>
+            `;
 
             try {
-                const res = await fetch(API_BASE_URL + '/api/chat', {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        message: prompt,
-                        time_filter: timeFilter,
-                        source_types: sources,
-                        tech_mode: techMode
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: topic })
                 });
+                const data = await response.json();
                 
-                if (!res.ok) throw new Error(`Server Error: ${res.status}`);
-                const data = await res.json();
-                clearInterval(progressTimer);
-                const loaderEl = document.getElementById(loaderId);
-                if(loaderEl) loaderEl.remove();
-
-                if (data.ui_type === 'signal_list') {
-                    data.items.forEach(signal => renderCard(signal));
-                    renderSystemMessage(`SCAN COMPLETE. ${data.items.length} SIGNALS FOUND.`);
-                } else if (data.ui_type === 'signal_card') {
-                    renderCard(data);
+                container.innerHTML = ''; // Clear loader
+                document.getElementById('status-area').classList.add('hidden');
+                
+                if (data.signals && data.signals.length > 0) {
+                    data.signals.forEach((signal, index) => {
+                        createSignalCard(signal, index);
+                    });
                 } else {
-                    renderSystemMessage(data.content);
+                    container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">No signals found. Try a broader topic.</div>`;
                 }
-                showToast('Scan finished', 'success');
-            } catch (err) {
-                console.error(err);
-                clearInterval(progressTimer);
-                const loader = document.getElementById(loaderId);
-                if(loader) loader.innerHTML = `<div class="bg-[#EB003B] text-white p-2 text-xs font-bold">⚠️ ERROR: ${err.message}</div>`;
-                showToast('Scan failed to run. Please try again.', 'error');
-            } finally {
-                setButtonLoading(launchBtn, false);
+
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = `<div class="col-span-full text-center text-nesta-red font-bold py-10">Connection Error. Please try again.</div>`;
             }
         }
 
-        function renderSystemMessage(html) {
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<div class="flex animate-fade-in mb-6"><div class="bg-[#D2C9C0] p-3 text-xs font-bold text-black max-w-[90%] uppercase tracking-wide border-l-4 border-black">${html}</div></div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function setShareable(idx, value, btn) {
-            const container = document.getElementById(`shareable-controls-${idx}`);
-            if (!container) return;
-            container.querySelectorAll('.choice-pill').forEach(el => el.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            const hidden = document.getElementById(`shareable-${idx}`);
-            if (hidden) hidden.value = value;
-        }
-
-        function renderCard(data) {
-            const clamp10 = (val) => Math.max(0, Math.min(10, parseInt(val) || 0));
-            const sEvoRaw = clamp10(data.score_evocativeness);
-            const sNovRaw = clamp10(data.score_novelty);
-            const sEviRaw = clamp10(data.score_evidence);
-
-            const derivedQuality = Math.round(((sEvoRaw + sNovRaw + sEviRaw) / 30) * 100);
-            const qualityScore = Math.max(0, Math.min(100, parseInt(data.score) || derivedQuality || 0));
-
-            // Normalise the signal object so saves and UI use the same score basis.
-            data.score = qualityScore;
-            data.score_evocativeness = sEvoRaw;
-            data.score_novelty = sNovRaw;
-            data.score_evidence = sEviRaw;
-
-            autoSaveSignal(data);
-            currentSignals.push(data);
-            const idx = currentSignals.length - 1;
-            const chatBox = document.getElementById('chat-box');
-
-            let scoreClass = "bg-gray-100 text-black";
-            if(qualityScore >= 80) scoreClass = "bg-[#18A48C] text-white";
-            else if(qualityScore >= 60) scoreClass = "bg-[#97D9E3] text-black";
-            const missionColorMap = {
-                "A Sustainable Future": "#18A48C",
-                "A Fairer Start": "#FF6E47",
-                "A Healthy Life": "#9A1BBE"
-            };
-            const missionBg = missionColorMap[data.mission] || "#0F294A";
-            const missionHtml = data.mission ? `<span class="mission-tag" style="background:${missionBg};">${data.mission}</span>` : '';
-            const lensesHtml = data.lenses ? data.lenses.split(',').map(tag => `<span class="border border-black text-black text-[9px] px-1.5 py-0.5 font-bold uppercase hover:bg-[#97D9E3] transition-colors">${tag.trim()}</span>`).join('') : '';
-            const sourceLabel = formatSourceLabel(data.final_url || data.sourceURL || "");
-            const region = regionFromUrl(data.final_url || data.sourceURL || "", data.source_region || "");
-            const regionChip = region ? `<span class="region-chip">${flagForRegion(region)} ${region}</span>` : '';
-            const sourceDate = formatMonthYear(data.source_date || data.published_date || data.date);
-            const dateChip = sourceDate ? `<span class="region-chip bg-[#97D9E3]/30 border-[#97D9E3] text-[#0F294A]">🗓️ ${sourceDate}</span>` : '';
-            const qualityBadgeRow = buildQualityBadges(data);
-            const sourceTags = [];
-            if (data.source_type) sourceTags.push(data.source_type);
-            if (Array.isArray(data.source_types)) sourceTags.push(...data.source_types);
-            if (data.source_category) sourceTags.push(data.source_category);
-            const uniqueSourceTags = [...new Set(sourceTags.filter(Boolean))];
-            const sourceTagHtml = uniqueSourceTags.map(tag => `<span class="badge-source">${tag}</span>`).join('');
+        function createSignalCard(signal, index) {
+            const container = document.getElementById('results-area');
+            
+            // Logic: Country & Score Color
+            const country = signal.source_country || "Global";
+            
+            let scoreColor = "bg-gray-100 text-gray-600";
+            if (signal.score >= 80) scoreColor = "bg-nesta-teal text-nesta-black"; // High Score = Teal
+            else if (signal.score >= 50) scoreColor = "bg-blue-50 text-nesta-blue";
 
             const cardHTML = `
-                <div class="animate-fade-in group mb-6">
-                    <div class="glass-panel bg-white/95 border-2 border-black p-6 relative hover:border-[#9A1BBE] transition-colors rounded-xl shadow-lg">
+                <div class="bg-white rounded-2xl p-6 shadow-soft hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in-up flex flex-col h-full" style="animation-delay: ${index * 150}ms">
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-body text-xs font-bold uppercase tracking-widest text-gray-400 border border-gray-100 px-2 py-1 rounded">
+                            ${country}
+                        </span>
+                        <span class="${scoreColor} font-body text-xs font-bold px-3 py-1 rounded-full">
+                            ${signal.score} / 100
+                        </span>
+                    </div>
 
-                        <div class="flex justify-between items-start mb-4 border-b border-gray-200 pb-3">
-                            <div class="flex items-center gap-2">
-                                ${sourceLabel ? `<span class="badge-source subtle-pulse">${sourceLabel}</span>` : ''}
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="relative group/score cursor-help">
-                                    <div class="font-mono text-xs font-bold ${scoreClass} px-2 py-1 rounded-md">⚡ ${data.score}/100</div>
-                                    <div class="absolute bottom-full right-0 mb-2 score-tooltip bg-white/95 text-[#0F294A] p-3 text-[10px] font-semibold tracking-normal hidden group-hover/score:block border-2 border-[#9A1BBE] z-50 shadow-xl rounded-lg">
-                                        <div class="mb-2 text-[11px] font-bold uppercase text-[#9A1BBE]">Scoring breakdown</div>
-                                        <div class="flex justify-between mb-1"><span>Evocativeness (surprise)</span> <span class="font-mono">${sEvoRaw}/10</span></div>
-                                        <div class="flex justify-between mb-1"><span>Novelty (niche sources)</span> <span class="font-mono">${sNovRaw}/10</span></div>
-                                        <div class="flex justify-between"><span>Evidence (verifiable)</span> <span class="font-mono">${sEviRaw}/10</span></div>
-                                        <div class="mt-2 text-[9px] text-[#0F294A]">Hover to see why this score was assigned.</div>
-                                    </div>
-                                    <div class="text-[10px] text-gray-500 mt-1">Overall derived from these sub-scores (equal weighting).</div>
-                                </div>
-                            </div>
-                        </div>
+                    <h3 class="font-display text-2xl font-bold text-nesta-dark mb-3 leading-tight">
+                        ${signal.title}
+                    </h3>
 
-                        <h3 class="font-bold text-black text-xl leading-tight mb-3 group-hover:text-[#9A1BBE] transition-colors signal-title"><a href="${data.final_url}" target="_blank" class="hover:underline">${data.title}</a></h3>
-                        <p class="text-[15px] text-gray-800 mb-5 leading-relaxed font-medium bg-[#f8f8f8] border border-gray-200 p-3 rounded-lg shadow-sm signal-description">${data.hook}</p>
-                        <div class="flex flex-wrap gap-2 mb-6">${missionHtml}${lensesHtml}</div>
+                    <p class="font-body text-gray-600 text-sm leading-relaxed mb-6 flex-grow">
+                        ${signal.hook}
+                    </p>
 
-                        <div class="bg-gray-50 border-2 border-gray-200 p-3 mb-4 text-xs rounded-lg">
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="font-bold uppercase text-gray-500 text-[9px] tracking-widest">Review</span>
-                                <div class="flex gap-2">
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="status-${idx}" value="Accepted" class="peer hidden" checked>
-                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#18A48C] hover:text-[#18A48C]">Accept</span>
-                                    </label>
-                                    <span class="text-gray-300">|</span>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="status-${idx}" value="Rejected" class="peer hidden">
-                                        <span class="text-[9px] font-bold uppercase text-gray-400 peer-checked:text-[#EB003B] hover:text-[#EB003B]">Reject</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-[10px] text-[#0F294A] uppercase tracking-widest">Shareable?</span>
-                                    <div class="flex gap-2" id="shareable-controls-${idx}">
-                                        <button type="button" class="choice-pill" onclick="setShareable(${idx}, 'Yes', this)">✅ Yes</button>
-                                        <button type="button" class="choice-pill active" onclick="setShareable(${idx}, 'Maybe', this)">🤔 Maybe</button>
-                                        <button type="button" class="choice-pill" onclick="setShareable(${idx}, 'No', this)">🚫 No</button>
-                                    </div>
-                                </div>
-                                <input type="hidden" id="shareable-${idx}" value="Maybe">
-                                <textarea id="comment-${idx}" placeholder="Optional feedback for the researcher" class="w-full mt-1 p-2 border border-gray-300 bg-white text-[10px] focus:outline-none focus:border-[#9A1BBE] rounded" rows="2"></textarea>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-0 border-2 border-black h-10">
-                            <button onclick="saveSignalByIndex(${idx}, this)" class="bg-black text-white text-[10px] font-bold hover:bg-[#9A1BBE] transition-colors uppercase tracking-widest border-r border-gray-700">Save Signal</button>
-                            <a href="${data.final_url}" target="_blank" class="bg-white text-black text-[10px] font-bold text-center uppercase tracking-widest hover:bg-[#97D9E3] transition-colors flex items-center justify-center">Source ↗</a>
+                    <div class="pt-4 border-t border-gray-100 mt-auto flex items-center justify-between">
+                        <span class="text-nesta-blue text-xs font-bold uppercase tracking-wide">
+                            ${signal.mission || 'Signal'}
+                        </span>
+                        
+                        <div class="flex gap-3">
+                            <a href="${signal.final_url}" target="_blank" 
+                               class="text-gray-400 hover:text-nesta-blue transition-colors">
+                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
+                            <button onclick='saveSignal(${JSON.stringify(signal).replace(/'/g, "&#39;")})' 
+                                class="text-nesta-black hover:text-nesta-red transition-colors font-semibold text-sm">
+                                Save +
+                            </button>
                         </div>
                     </div>
-                </div>`;
-            chatBox.innerHTML += cardHTML;
-            chatBox.scrollTop = chatBox.scrollHeight;
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', cardHTML);
         }
 
-        async function saveSignalByIndex(idx, btn) {
-            const data = currentSignals[idx];
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = `SAVING...`;
-            btn.disabled = true;
-
-            // Collect feedback
-            const status = document.querySelector(`input[name="status-${idx}"]:checked`).value;
-            const shareable = document.getElementById(`shareable-${idx}`).value;
-            const feedback = document.getElementById(`comment-${idx}`).value;
-            const rating = 3;
-
-            const payload = {
-                title: data.title, score: data.score, hook: data.hook, url: data.final_url || data.sourceURL || data.url,
-                mission: data.mission || "", lenses: data.lenses || "",
-                score_evocativeness: data.score_evocativeness || 0, score_novelty: data.score_novelty || 0, score_evidence: data.score_evidence || 0,
-                user_rating: parseInt(rating), user_status: status, user_comment: feedback, shareable: shareable, feedback: feedback
-            };
-
-            try {
-                const res = await fetch(API_BASE_URL + '/api/save', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-
-                if (!updateRes.ok) {
-                    const res = await fetch(API_BASE_URL + '/api/save', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(payload)
-                    });
-                    if (!res.ok) throw new Error("Save failed");
-                }
-
-                btn.className = "bg-[#18A48C] text-white text-[10px] font-bold cursor-default uppercase tracking-widest border-r border-gray-700";
-                btn.innerHTML = `SAVED`;
-                btn.removeAttribute("onclick");
-                showToast('Signal saved to database', 'success');
-                refreshDatabase();
-            } catch (err) {
-                alert("Failed to save.");
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-                showToast('Save failed. Please retry.', 'error');
-            }
-        }
-
-        async function refreshDatabase() {
-            const list = document.getElementById('db-list');
-            const refreshBtn = document.getElementById('refresh-btn');
-            setButtonLoading(refreshBtn, true, '', 'Refreshing…');
-            try {
-                const res = await fetch(API_BASE_URL + '/api/saved');
-                const items = await res.json();
-                if(items.length === 0) {
-                    list.innerHTML = `<div class="flex flex-col items-center justify-center h-40 text-gray-400"><span class="text-[10px] uppercase font-bold tracking-widest">Empty</span></div>`;
-                    showToast('No saved signals found yet', 'info');
-                    return;
-                }
-                list.innerHTML = items.map(item => {
-                    const shareable = item['Shareable'] || item['shareable'] || 'Maybe';
-                    const feedback = item['Feedback'] || item['feedback'] || item['User_Comment'] || '';
-                    return `
-                    <div class="bg-white/90 p-4 border border-black relative group hover:border-[#9A1BBE] transition-colors animate-fade-in rounded-lg shadow-sm">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">${shareable === 'Yes' ? '✅ Shareable' : shareable === 'No' ? '🚫 Not shareable' : '🤔 Maybe shareable'}</span>
-                            <span class="text-[9px] font-bold text-white bg-[#9A1BBE] px-2 py-1 rounded">${item['Score'] || item['score'] || 0}</span>
-                        </div>
-                        <div class="font-bold text-black text-[11px] leading-snug pr-4 mb-3">
-                            <a href="${item['URL'] || item['url']}" target="_blank" class="hover:text-[#18A48C] transition-colors line-clamp-2">${item['Title'] || item['title']}</a>
-                        </div>
-                        <div class="flex flex-col gap-2 text-[9px] mb-3">
-                            <label class="font-bold text-gray-500 uppercase tracking-widest">Shareable</label>
-                            <select id="saved-shareable-${item['_row'] || ''}" class="border border-gray-300 px-2 py-1 text-[10px] w-full bg-white">
-                                <option value="Yes" ${shareable === 'Yes' ? 'selected' : ''}>Yes</option>
-                                <option value="Maybe" ${shareable === 'Maybe' ? 'selected' : ''}>Maybe</option>
-                                <option value="No" ${shareable === 'No' ? 'selected' : ''}>No</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col gap-1 text-[9px] mb-3">
-                            <label class="font-bold text-gray-500 uppercase tracking-widest">Feedback</label>
-                            <textarea id="saved-comment-${item['_row'] || ''}" rows="2" class="border border-gray-300 px-2 py-2 text-[10px] w-full rounded">${feedback}</textarea>
-                        </div>
-                        <button onclick="updateSavedSignal('${item['URL'] || item['url']}', '${item['Title'] || item['title']}', ${item['_row'] || 'null'})" class="bg-black text-white text-[10px] font-bold uppercase tracking-widest w-full py-2 hover:bg-[#18A48C] rounded">Update</button>
-                    </div>`;
-                }).join('');
-            } catch (err) { console.error("DB Error", err); }
-            finally {
-                setButtonLoading(refreshBtn, false);
-            }
-        }
-
-        async function updateSavedSignal(url, title, rowId) {
-            const rating = 3;
-            const shareable = document.getElementById(`saved-shareable-${rowId || ''}`)?.value || 'Maybe';
-            const comment = document.getElementById(`saved-comment-${rowId || ''}`)?.value || '';
-            try {
-                const res = await fetch(API_BASE_URL + '/api/update', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ url, title, user_rating: rating, user_comment: comment, feedback: comment, shareable: shareable, user_status: 'Accepted' })
-                });
-                if(res.ok) {
-                    showToast('Feedback updated', 'success');
-                    refreshDatabase();
-                } else {
-                    showToast('Update failed', 'error');
-                }
-            } catch (e) { console.error('Update failed', e); showToast('Update failed', 'error'); }
+        function saveSignal(signalData) {
+            fetch(`${API_BASE_URL}/api/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(signalData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') alert("Signal Saved!");
+                else alert("Error: " + data.error);
+            })
+            .catch(err => alert("Network Error"));
         }
     </script>
 </body>
