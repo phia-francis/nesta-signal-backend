@@ -14,15 +14,15 @@
                             blue: '#0000FF',      /* Primary Interaction */
                             teal: '#00C3E8',      /* Highlights/Badges */
                             red: '#F06432',       /* Alerts */
-                            dark: '#0F294A',      /* "Blue Zodiac" for Backgrounds */
+                            dark: '#0F294A',      /* "Blue Zodiac" */
                             black: '#000000',
-                            grey: '#F2F2F2',      /* Soft Backgrounds */
+                            grey: '#F2F2F2',
                             'grey-dark': '#333333'
                         }
                     },
                     fontFamily: {
-                        display: ['Zosia Display', 'sans-serif'], /* For Headings */
-                        body: ['Averta', 'sans-serif'],           /* For Text */
+                        display: ['Zosia Display', 'sans-serif'],
+                        body: ['Averta', 'sans-serif'],
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -35,7 +35,7 @@
                     },
                     boxShadow: {
                         'soft': '0 4px 20px rgba(0, 0, 0, 0.05)',
-                        'hover': '0 10px 25px rgba(0, 0, 255, 0.1)', /* Blue tinted shadow */
+                        'hover': '0 10px 25px rgba(0, 0, 255, 0.1)',
                     }
                 }
             }
@@ -60,54 +60,85 @@
             font-weight: 600;
         }
 
-        body {
-            background-color: #FAFAFA;
-        }
-        
-        /* Smooth scrolling */
+        body { background-color: #FAFAFA; }
         html { scroll-behavior: smooth; }
+        
+        /* Custom Checkbox Toggle */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #0000FF;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0000FF;
+        }
     </style>
 </head>
 <body class="text-nesta-black font-body antialiased min-h-screen flex flex-col">
 
-    <header class="bg-nesta-dark text-white pt-12 pb-24 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-nesta-blue rounded-full mix-blend-multiply filter blur-3xl opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
+    <header class="bg-nesta-dark text-white pt-10 pb-24 relative overflow-hidden shadow-lg">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-nesta-blue rounded-full mix-blend-multiply filter blur-3xl opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
 
         <div class="container mx-auto px-6 relative z-10">
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <h1 class="font-display text-5xl md:text-6xl font-bold tracking-tight mb-2">
-                        Signal Scout
-                    </h1>
-                    <p class="text-nesta-teal font-body text-lg font-semibold tracking-wide uppercase">
-                        Discovery Hub
-                    </p>
+            <div class="flex justify-between items-center mb-10">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 bg-white rounded-full flex items-center justify-center text-nesta-blue font-display font-bold text-xl">N</div>
+                    <span class="font-display text-xl tracking-wide">Discovery Hub</span>
                 </div>
-                <div class="hidden md:block h-12 w-12 bg-white rounded-full flex items-center justify-center">
-                    <span class="font-display text-nesta-blue text-2xl font-bold">N</span>
-                </div>
-            </div>
-            
-            <div class="bg-white p-2 rounded-2xl shadow-soft flex items-center max-w-2xl transform translate-y-8">
-                <input type="text" id="topic-input" 
-                    placeholder="Enter a topic (e.g., 'Future of synthetic biology')" 
-                    class="flex-1 p-4 bg-transparent border-none focus:ring-0 text-lg text-nesta-dark placeholder-gray-400 font-body"
-                    onkeydown="if(event.key === 'Enter') runScan()">
-                
-                <button onclick="runScan()" 
-                    class="bg-nesta-blue hover:bg-blue-700 text-white font-display font-bold text-lg px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
-                    Scout &rarr;
+                <button onclick="openSavedSignals()" class="text-sm font-bold uppercase tracking-widest hover:text-nesta-teal transition-colors border border-white/20 px-4 py-2 rounded-full">
+                    View Saved Database
                 </button>
+            </div>
+
+            <h1 class="font-display text-5xl md:text-6xl font-bold tracking-tight mb-2">
+                Signal Scout
+            </h1>
+            <p class="text-nesta-teal font-body text-lg font-semibold tracking-wide uppercase mb-8">
+                Automated Horizon Scanning Agent
+            </p>
+            
+            <div class="bg-white p-4 rounded-3xl shadow-soft max-w-4xl transform translate-y-12">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <input type="text" id="topic-input" 
+                        placeholder="Enter a topic (e.g., 'Future of synthetic biology')" 
+                        class="flex-1 p-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-nesta-blue focus:bg-white focus:outline-none text-lg text-nesta-dark placeholder-gray-400 font-body transition-all"
+                        onkeydown="if(event.key === 'Enter') runScan()">
+                    
+                    <button onclick="runScan()" 
+                        class="bg-nesta-blue hover:bg-blue-700 text-white font-display font-bold text-lg px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg whitespace-nowrap">
+                        Scout &rarr;
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-6 px-2">
+                    
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 text-xs font-bold uppercase tracking-wider">Horizon:</span>
+                        <select id="time-horizon" class="bg-gray-100 text-nesta-dark text-sm font-semibold py-2 px-3 rounded-lg border-none focus:ring-2 focus:ring-nesta-blue cursor-pointer">
+                            <option value="Past Month">Past Month</option>
+                            <option value="Past 3 Months">Past 3 Months</option>
+                            <option value="Past 6 Months">Past 6 Months</option>
+                            <option value="Past Year">Past Year</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-3 border-l border-gray-200 pl-6">
+                        <span class="text-gray-400 text-xs font-bold uppercase tracking-wider">Tech Mode</span>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="tech-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300"/>
+                            <label for="tech-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-6 pt-20 pb-12 flex-grow">
+    <main class="container mx-auto px-6 pt-24 pb-12 flex-grow">
         
         <div id="status-area" class="mb-8 hidden">
             <div class="flex items-center gap-3 text-nesta-grey-dark animate-pulse">
                 <div class="w-2 h-2 bg-nesta-red rounded-full"></div>
-                <span class="font-semibold">Scouting active...</span>
+                <span class="font-semibold" id="status-text">Scouting active...</span>
             </div>
         </div>
 
@@ -116,9 +147,22 @@
 
     </main>
 
+    <div id="saved-modal" class="fixed inset-0 bg-nesta-dark bg-opacity-90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-3xl">
+                <h2 class="font-display text-2xl font-bold text-nesta-dark">Saved Signals Database</h2>
+                <button onclick="closeSavedSignals()" class="text-gray-400 hover:text-nesta-red font-bold text-xl px-4">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 bg-gray-50">
+                <div id="saved-list" class="space-y-4">
+                    </div>
+            </div>
+        </div>
+    </div>
+
     <footer class="bg-white border-t border-gray-100 py-8 mt-auto">
         <div class="container mx-auto px-6 text-center text-gray-400 text-sm">
-            <p>&copy; 2025 Nesta Discovery Hub. Built with Signal Scout AI.</p>
+            <p>&copy; 2025 Nesta Discovery Hub.</p>
         </div>
     </footer>
 
@@ -127,17 +171,21 @@
 
         async function runScan() {
             const topic = document.getElementById('topic-input').value;
+            const timeHorizon = document.getElementById('time-horizon').value;
+            const techMode = document.getElementById('tech-mode-toggle').checked;
+
             if (!topic) return;
 
-            // Show Loading State
+            // UI Loading State
             const container = document.getElementById('results-area');
             document.getElementById('status-area').classList.remove('hidden');
+            document.getElementById('status-text').innerText = `Scouting "${topic}" (${timeHorizon})...`;
             
             container.innerHTML = `
                 <div class="col-span-full py-20 text-center opacity-0 animate-fade-in-up">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-nesta-blue border-t-transparent mb-4"></div>
                     <p class="text-xl font-display font-bold text-nesta-dark">Scanning the horizon...</p>
-                    <p class="text-gray-500 mt-2">Checking niche sources for "${topic}"</p>
+                    <p class="text-gray-500 mt-2">Checking niche sources. This can take up to 60 seconds.</p>
                 </div>
             `;
 
@@ -145,11 +193,15 @@
                 const response = await fetch(`${API_BASE_URL}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: topic })
+                    body: JSON.stringify({ 
+                        message: topic,
+                        time_filter: timeHorizon,
+                        tech_mode: techMode
+                    })
                 });
                 const data = await response.json();
                 
-                container.innerHTML = ''; // Clear loader
+                container.innerHTML = ''; 
                 document.getElementById('status-area').classList.add('hidden');
                 
                 if (data.signals && data.signals.length > 0) {
@@ -162,22 +214,29 @@
 
             } catch (error) {
                 console.error(error);
-                container.innerHTML = `<div class="col-span-full text-center text-nesta-red font-bold py-10">Connection Error. Please try again.</div>`;
+                container.innerHTML = `<div class="col-span-full text-center text-nesta-red font-bold py-10">Connection Error. Please check backend status.</div>`;
             }
         }
 
-        function createSignalCard(signal, index) {
-            const container = document.getElementById('results-area');
+        function createSignalCard(signal, index, isSavedView = false) {
+            const container = isSavedView ? document.getElementById('saved-list') : document.getElementById('results-area');
             
             // Logic: Country & Score Color
             const country = signal.source_country || "Global";
-            
             let scoreColor = "bg-gray-100 text-gray-600";
-            if (signal.score >= 80) scoreColor = "bg-nesta-teal text-nesta-black"; // High Score = Teal
+            if (signal.score >= 80) scoreColor = "bg-nesta-teal text-nesta-black";
             else if (signal.score >= 50) scoreColor = "bg-blue-50 text-nesta-blue";
 
+            // Lenses Parsing
+            let lensesHTML = '';
+            if (signal.lenses) {
+                signal.lenses.split(',').forEach(lens => {
+                    lensesHTML += `<span class="inline-block bg-gray-50 text-gray-400 text-[10px] px-2 py-1 rounded-sm uppercase tracking-wider mr-1 mb-1">${lens.trim()}</span>`;
+                });
+            }
+
             const cardHTML = `
-                <div class="bg-white rounded-2xl p-6 shadow-soft hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in-up flex flex-col h-full" style="animation-delay: ${index * 150}ms">
+                <div class="bg-white rounded-2xl p-6 shadow-soft hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in-up flex flex-col h-full ${isSavedView ? 'border border-gray-200' : ''}" style="animation-delay: ${index * 150}ms">
                     
                     <div class="flex justify-between items-start mb-4">
                         <span class="font-body text-xs font-bold uppercase tracking-widest text-gray-400 border border-gray-100 px-2 py-1 rounded">
@@ -192,24 +251,47 @@
                         ${signal.title}
                     </h3>
 
-                    <p class="font-body text-gray-600 text-sm leading-relaxed mb-6 flex-grow">
+                    <p class="font-body text-gray-600 text-sm leading-relaxed mb-4 flex-grow">
                         ${signal.hook}
                     </p>
+                    
+                    <div class="mb-4 flex flex-wrap">
+                        ${lensesHTML}
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 mb-6 bg-gray-50 p-2 rounded-lg text-center">
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase font-bold">Novelty</div>
+                            <div class="text-nesta-blue font-bold text-sm">${signal.score_novelty || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase font-bold">Evidence</div>
+                            <div class="text-nesta-blue font-bold text-sm">${signal.score_evidence || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 uppercase font-bold">Evocative</div>
+                            <div class="text-nesta-blue font-bold text-sm">${signal.score_evocativeness || '-'}</div>
+                        </div>
+                    </div>
 
                     <div class="pt-4 border-t border-gray-100 mt-auto flex items-center justify-between">
-                        <span class="text-nesta-blue text-xs font-bold uppercase tracking-wide">
+                        <span class="text-nesta-blue text-xs font-bold uppercase tracking-wide truncate max-w-[120px]">
                             ${signal.mission || 'Signal'}
                         </span>
                         
                         <div class="flex gap-3">
                             <a href="${signal.final_url}" target="_blank" 
-                               class="text-gray-400 hover:text-nesta-blue transition-colors">
-                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                               class="text-gray-400 hover:text-nesta-blue transition-colors flex items-center gap-1 text-xs font-bold uppercase">
+                               Read
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             </a>
-                            <button onclick='saveSignal(${JSON.stringify(signal).replace(/'/g, "&#39;")})' 
-                                class="text-nesta-black hover:text-nesta-red transition-colors font-semibold text-sm">
-                                Save +
+                            ${!isSavedView ? `
+                            <button onclick='saveSignal(this, ${JSON.stringify(signal).replace(/'/g, "&#39;")})' 
+                                class="text-nesta-black hover:text-nesta-teal transition-colors font-semibold text-sm flex items-center gap-1">
+                                <span>Save</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                             </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -217,7 +299,11 @@
             container.insertAdjacentHTML('beforeend', cardHTML);
         }
 
-        function saveSignal(signalData) {
+        function saveSignal(btnElement, signalData) {
+            // Optimistic UI
+            const originalText = btnElement.innerHTML;
+            btnElement.innerHTML = `<span class="animate-pulse">Saving...</span>`;
+            
             fetch(`${API_BASE_URL}/api/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -225,10 +311,57 @@
             })
             .then(res => res.json())
             .then(data => {
-                if(data.status === 'success') alert("Signal Saved!");
-                else alert("Error: " + data.error);
+                if(data.status === 'success' || data.status === 'saved' || data.status === 'updated') {
+                    btnElement.innerHTML = `<span class="text-nesta-teal">Saved!</span>`;
+                    btnElement.disabled = true;
+                } else {
+                    alert("Error: " + data.error);
+                    btnElement.innerHTML = originalText;
+                }
             })
-            .catch(err => alert("Network Error"));
+            .catch(err => {
+                alert("Network Error");
+                btnElement.innerHTML = originalText;
+            });
+        }
+
+        async function openSavedSignals() {
+            document.getElementById('saved-modal').classList.remove('hidden');
+            const list = document.getElementById('saved-list');
+            list.innerHTML = `<div class="text-center py-10"><div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-nesta-blue border-t-transparent"></div></div>`;
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/saved`);
+                const data = await res.json(); // Returns array directly based on backend logic
+                list.innerHTML = '';
+                
+                if(Array.isArray(data) && data.length > 0) {
+                    data.forEach((signal, i) => {
+                        // Normalize keys from Sheet (Capitalized) to UI (Lowercase)
+                        const normalized = {
+                            title: signal.Title,
+                            score: signal.Score,
+                            hook: signal.Hook,
+                            final_url: signal.URL,
+                            source_country: signal.Source_Country,
+                            mission: signal.Mission,
+                            lenses: signal.Lenses,
+                            score_novelty: signal.Score_Novelty,
+                            score_evidence: signal.Score_Evidence,
+                            score_evocativeness: signal.Score_Evocativeness
+                        };
+                        createSignalCard(normalized, i, true);
+                    });
+                } else {
+                    list.innerHTML = `<div class="text-center text-gray-500 py-10">No saved signals yet.</div>`;
+                }
+            } catch (e) {
+                list.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load database.</div>`;
+            }
+        }
+
+        function closeSavedSignals() {
+            document.getElementById('saved-modal').classList.add('hidden');
         }
     </script>
 </body>
