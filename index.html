@@ -14,27 +14,27 @@
                 extend: {
                     colors: {
                         nesta: {
-                            blue: '#0000FF',       // Hero (All Missions) [cite: 141-145]
-                            navy: '#0F294A',       // Text/Structure [cite: 167-171]
+                            [cite_start]blue: '#0000FF',       // Hero (All Missions) [cite: 141-145]
+                            [cite_start]navy: '#0F294A',       // Structure/Header/Footer [cite: 167-171]
                             
                             // Support Colours (Mission Specific)
-                            pink: '#F6A4B7',       // AHL Support 
-                            yellow: '#FDB633',     // AFS Support 
-                            green: '#18A48C',      // ASF Support 
+                            [cite_start]pink: '#F6A4B7',       // AHL Support [cite: 157-158]
+                            [cite_start]yellow: '#FDB633',     // AFS Support [cite: 161-162]
+                            [cite_start]green: '#18A48C',      // ASF Support [cite: 146-148]
                             
                             // Neutrals/Accents
                             red: '#EB003B',        
                             aqua: '#97D9E3',       
-                            darkgrey: '#646363',   // Text [cite: 163-165]
-                            sand: '#D2C9C0',       // Backgrounds [cite: 164-166]
+                            [cite_start]darkgrey: '#646363',   // Text [cite: 163-165]
+                            [cite_start]sand: '#D2C9C0',       // Backgrounds [cite: 164-166]
                             lightsand: '#E5E0D8',  // Custom tint for body bg
-                            black: '#000000',      // [cite: 174-177]
-                            white: '#FFFFFF'       // [cite: 172-173]
+                            [cite_start]black: '#000000',      // [cite: 174-177]
+                            [cite_start]white: '#FFFFFF'       // [cite: 172-173]
                         }
                     },
                     fontFamily: {
-                        display: ['"Zosia Display"', 'sans-serif'], // [cite: 230-232]
-                        body: ['"Averta"', 'sans-serif']           // [cite: 250-251]
+                        [cite_start]display: ['"Zosia Display"', 'sans-serif'], // [cite: 230-232]
+                        [cite_start]body: ['"Averta"', 'sans-serif']           // [cite: 250-251]
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -88,10 +88,10 @@
 </head>
 <body class="min-h-screen flex flex-col antialiased bg-nesta-lightsand" onload="initDashboard()">
 
-    <header class="bg-nesta-blue text-white sticky top-0 z-50 shadow-md border-b-4 border-nesta-navy">
+    <header class="bg-nesta-navy text-white sticky top-0 z-50 shadow-md">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white text-nesta-blue flex items-center justify-center text-xl font-bold rounded-sm brand-font">N</div>
+                <div class="w-10 h-10 bg-white text-nesta-navy flex items-center justify-center text-xl font-bold rounded-sm brand-font">N</div>
                 <div class="flex flex-col">
                     <h1 class="text-2xl leading-none">Signal Scout <span class="text-nesta-aqua">Pro</span></h1>
                     <span class="text-[10px] font-bold tracking-widest uppercase opacity-80">Discovery Hub</span>
@@ -102,11 +102,12 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export
                 </button>
-                <button onclick="openSavedSignals()" class="px-5 py-2 bg-nesta-navy text-white text-sm font-bold rounded hover:bg-nesta-aqua hover:text-nesta-navy transition shadow-lg border border-nesta-aqua/30">
+                <button onclick="openSavedSignals()" class="px-5 py-2 bg-white text-nesta-navy text-sm font-bold rounded hover:bg-nesta-aqua transition shadow-lg">
                     Full Database
                 </button>
             </div>
         </div>
+        <div class="h-1 w-full bg-gradient-to-r from-nesta-blue via-nesta-green to-nesta-purple"></div>
     </header>
 
     <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10 space-y-12">
@@ -211,7 +212,7 @@
 
     </main>
 
-    <footer class="bg-nesta-navy text-white mt-auto border-t border-nesta-aqua/20">
+    <footer class="bg-nesta-navy text-white mt-auto">
         <div class="h-1 w-full bg-gradient-to-r from-nesta-blue via-nesta-green to-nesta-purple"></div>
         <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -245,8 +246,13 @@
     </div>
 
     <script>
-        // CONFIG & STATE
-        const API_BASE_URL = window.location.origin;
+        // --- API CONFIGURATION ---
+        // Automatically detect if running locally or on Render/GitHub Pages
+        const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://127.0.0.1:8000' 
+            : window.location.origin;
+
+        // STATE
         let currentSignals = [];
         let radarChart = null;
         let isProcessing = false;
@@ -321,7 +327,6 @@
             } catch(e) { console.error(e); grid.innerHTML = '<div class="col-span-3 text-center text-xs text-nesta-red">Unable to load preview.</div>'; }
         }
 
-        // UTILS
         function showToast(msg, type='success') {
             const el = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
@@ -411,23 +416,23 @@
         function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
             const container = document.getElementById(containerId);
             
-            // Mission Colour Pairing Logic (Blue/Yellow, Blue/Green, Blue/Pink) [cite: 190-193]
+            [cite_start]// Mission Colour Pairing Logic [cite: 190-193]
             let barColor = "bg-nesta-darkgrey"; 
             let badgeColor = "bg-gray-100 text-nesta-darkgrey";
             const m = (signal.mission || "").toLowerCase();
             
             if (m.includes("fairer")) { 
-                // A Fairer Start: Yellow Support (Hero Blue is implicit in app header)
+                [cite_start]// A Fairer Start: Yellow Support (Hero Blue) [cite: 161-162]
                 barColor = "bg-nesta-yellow"; 
                 badgeColor = "bg-nesta-yellow text-nesta-navy"; 
             }
             else if (m.includes("sustainable")) { 
-                // A Sustainable Future: Green Support
+                [cite_start]// A Sustainable Future: Green Support (Hero Blue) [cite: 146-148]
                 barColor = "bg-nesta-green"; 
                 badgeColor = "bg-nesta-green text-white"; 
             }
             else if (m.includes("healthy")) { 
-                // A Healthy Life: Pink Support
+                [cite_start]// A Healthy Life: Pink Support (Hero Blue) [cite: 157-158]
                 barColor = "bg-nesta-pink"; 
                 badgeColor = "bg-nesta-pink text-nesta-navy"; 
             }
@@ -501,7 +506,7 @@
                 data.forEach((sig, i) => {
                     const normalized = {
                         title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
-                        mission: sig.Mission, lenses: sig.Lenses, // Ensure Lenses are passed
+                        mission: sig.Mission, lenses: sig.Lenses, 
                         score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
                         shareable: sig.Shareable, feedback: sig.Feedback || sig.User_Comment, _row: sig._row, source_date: sig.Source_Date
                     };
