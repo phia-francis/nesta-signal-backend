@@ -5,444 +5,247 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nesta Signal Scout Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* NESTA BRAND GUIDELINES */
-        :root {
-            --nesta-purple: #9A1BBE;
-            --nesta-green: #18A48C;
-            --nesta-aqua: #97D9E3;
-            --nesta-navy: #0F294A;
-            --nesta-black: #000000;
-            --nesta-white: #FFFFFF;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F3F4F6;
-            color: var(--nesta-navy);
-        }
-
+        :root { --nesta-purple: #9A1BBE; --nesta-green: #18A48C; --nesta-navy: #0F294A; }
+        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
         .font-nesta-display { font-family: 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #999; }
-
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--nesta-purple);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--nesta-purple); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Custom Range Slider */
-        input[type=range] {
-            -webkit-appearance: none; 
-            background: transparent; 
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px; width: 16px;
-            border-radius: 50%;
-            background: var(--nesta-purple);
-            cursor: pointer;
-            margin-top: -6px; 
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px;
-            cursor: pointer; background: #ddd; border-radius: 2px;
-        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col text-nesta-navy">
 
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-black text-white flex items-center justify-center font-bold text-xl rounded-sm">N</div>
-                <h1 class="font-nesta-display text-xl tracking-tight text-gray-900">Signal Scout <span class="text-nesta-purple">Pro</span></h1>
+                <div class="w-8 h-8 bg-black text-white flex items-center justify-center font-bold rounded-sm">N</div>
+                <h1 class="font-nesta-display text-xl">Signal Scout <span class="text-nesta-purple">Pro</span></h1>
             </div>
-            <div class="flex items-center gap-4">
-                <button onclick="openSavedSignals()" class="text-sm font-semibold text-gray-600 hover:text-black transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                    Database
-                </button>
+            <div class="flex gap-4">
+                <button onclick="downloadCSV()" class="text-sm font-semibold hover:text-nesta-purple">Export CSV</button>
+                <button onclick="openSavedSignals()" class="text-sm font-semibold hover:text-black">Database</button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <main class="max-w-7xl mx-auto w-full px-4 py-8 space-y-6">
         
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+            <input type="text" id="topic-input" class="block w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-black focus:border-black" placeholder="Enter topic (e.g. 'Synthetic Biology')..." onkeypress="handleEnter(event)">
             
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </div>
-                <input type="text" id="topic-input" 
-                    class="block w-full pl-10 pr-3 py-4 border border-gray-300 rounded-lg focus:ring-black focus:border-black text-lg placeholder-gray-400" 
-                    placeholder="Enter a topic (e.g., 'Synthetic biology' or 'Future of care')..."
-                    onkeypress="handleEnter(event)">
-            </div>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Target Mission</label>
-                    <select id="mission-select" class="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
-                        <option value="All Missions">All Missions</option>
-                        <option value="A Fairer Start">A Fairer Start</option>
-                        <option value="A Healthy Life">A Healthy Life</option>
-                        <option value="A Sustainable Future">A Sustainable Future</option>
-                    </select>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Mission</label>
+                    <select id="mission-select" class="w-full mt-1 p-2 border rounded bg-white"><option>All Missions</option><option>A Fairer Start</option><option>A Healthy Life</option><option>A Sustainable Future</option></select>
                 </div>
-
                 <div>
-                    <div class="flex justify-between mb-2">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide">Signal Count</label>
-                        <span id="count-display" class="text-xs font-bold text-nesta-purple">5</span>
-                    </div>
-                    <input type="range" id="signal-count" min="1" max="10" value="5" 
-                           oninput="document.getElementById('count-display').innerText = this.value"
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between"><label class="text-xs font-bold text-gray-500 uppercase">Count</label><span id="count-display" class="font-bold text-nesta-purple">5</span></div>
+                    <input type="range" id="signal-count" min="1" max="10" value="5" oninput="document.getElementById('count-display').innerText = this.value" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                 </div>
-
-                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <span class="text-sm font-medium text-gray-700">Emerging Tech Only</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="tech-mode" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-black rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-                    </label>
+                <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
+                    <span class="text-sm font-medium">Emerging Tech Only</span>
+                    <input type="checkbox" id="tech-mode" class="w-5 h-5 text-black rounded focus:ring-0">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Source Bias</label>
-                <div class="flex flex-wrap gap-3" id="source-bias-container">
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="Academia" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">Academia</span>
-                    </label>
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="News" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">News</span>
-                    </label>
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="VC" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">VC</span>
-                    </label>
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="Industry News" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">Industry News</span>
-                    </label>
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="Scientific Magazines" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">Scientific Mags</span>
-                    </label>
-                    <label class="inline-flex items-center bg-gray-50 px-3 py-1.5 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
-                        <input type="checkbox" value="Substack" class="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black">
-                        <span class="ml-2 text-sm text-gray-700">Substack</span>
-                    </label>
+                <label class="text-xs font-bold text-gray-500 uppercase mb-2 block">Source Bias</label>
+                <div class="flex flex-wrap gap-2" id="source-bias-container">
+                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="Academia"><span>Academia</span></label>
+                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="VC"><span>VC</span></label>
+                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="Substack"><span>Substack</span></label>
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-100 gap-4">
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <label class="text-sm text-gray-500 whitespace-nowrap">Time Horizon:</label>
-                    <select id="time-filter" class="text-sm border-none bg-gray-50 rounded px-2 py-1 font-semibold text-gray-700 focus:ring-0 cursor-pointer hover:bg-gray-100">
-                        <option>Past Month</option>
-                        <option>Past 3 Months</option>
-                        <option>Past 6 Months</option>
-                        <option>Past Year</option>
-                    </select>
-                </div>
-                
-                <div class="flex gap-3 w-full sm:w-auto">
-                    <button id="broad-btn" onclick="generateSignal(true)" class="flex-1 sm:flex-none px-6 py-2.5 border border-gray-300 shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition">
-                        Broad Scanning
-                    </button>
-                    <button id="search-btn" onclick="generateSignal(false)" class="flex-1 sm:flex-none px-8 py-2.5 bg-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2">
-                        <span>Execute Search</span>
-                        <div id="btn-loader" class="loader hidden border-white border-t-transparent"></div>
+            <div class="flex justify-between items-center pt-4 border-t gap-4">
+                <select id="time-filter" class="bg-gray-50 border-none text-sm font-semibold"><option>Past Month</option><option>Past Year</option></select>
+                <div class="flex gap-3">
+                    <button onclick="generateSignal(true)" class="px-6 py-2 border rounded hover:bg-gray-50 font-bold text-gray-700">Broad Scan</button>
+                    <button id="search-btn" onclick="generateSignal(false)" class="px-8 py-2 bg-black text-white rounded font-bold hover:bg-gray-800 flex items-center gap-2">
+                        <span>Execute</span><div id="btn-loader" class="loader hidden border-white border-t-transparent"></div>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="result-container" class="space-y-6 pb-20"></div>
+        <div id="view-controls" class="hidden flex justify-end gap-2">
+            <button onclick="switchView('list')" id="btn-list" class="px-3 py-1 bg-black text-white text-xs rounded font-bold">List View</button>
+            <button onclick="switchView('radar')" id="btn-radar" class="px-3 py-1 bg-gray-200 text-gray-600 text-xs rounded font-bold">Radar View</button>
+        </div>
+
+        <div id="result-container" class="space-y-6"></div>
+        
+        <div id="radar-container" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-[500px] flex items-center justify-center">
+            <canvas id="signalRadar"></canvas>
+        </div>
 
     </main>
 
-    <div id="saved-modal" class="fixed inset-0 bg-black/50 hidden z-[60] backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h2 class="font-nesta-display text-2xl">Signal Database</h2>
-                <button onclick="closeSavedSignals()" class="p-2 hover:bg-gray-200 rounded-full transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+    <div id="saved-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-5xl h-[85vh] rounded-2xl flex flex-col">
+            <div class="p-6 border-b flex justify-between bg-gray-50">
+                <h2 class="font-bold text-xl">Signal Database</h2>
+                <button onclick="document.getElementById('saved-modal').classList.add('hidden')">✕</button>
             </div>
             <div id="saved-list" class="flex-1 overflow-y-auto p-6 bg-gray-100 space-y-4"></div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 bg-black text-white px-6 py-3 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-[70]"></div>
-
     <script>
-        // CONFIG
-        const API_BASE_URL = window.location.origin; // Dynamically uses current origin (Render/Colab)
+        const API_BASE_URL = window.location.origin;
+        let currentSignals = [];
+        let radarChart = null;
 
-        // STATE
-        let isProcessing = false;
+        function handleEnter(e) { if(e.key==='Enter') generateSignal(false); }
+        function getCheckedSources() { return Array.from(document.querySelectorAll('#source-bias-container input:checked')).map(c=>c.value); }
 
-        function handleEnter(e) {
-            if(e.key === 'Enter') generateSignal(false);
+        function switchView(view) {
+            const list = document.getElementById('result-container');
+            const radar = document.getElementById('radar-container');
+            const btnList = document.getElementById('btn-list');
+            const btnRadar = document.getElementById('btn-radar');
+
+            if(view === 'list') {
+                list.classList.remove('hidden'); radar.classList.add('hidden');
+                btnList.classList.add('bg-black','text-white'); btnList.classList.remove('bg-gray-200','text-gray-600');
+                btnRadar.classList.remove('bg-black','text-white'); btnRadar.classList.add('bg-gray-200','text-gray-600');
+            } else {
+                list.classList.add('hidden'); radar.classList.remove('hidden');
+                btnRadar.classList.add('bg-black','text-white'); btnRadar.classList.remove('bg-gray-200','text-gray-600');
+                btnList.classList.remove('bg-black','text-white'); btnList.classList.add('bg-gray-200','text-gray-600');
+                renderRadar();
+            }
         }
 
-        function showToast(msg, type='info') {
-            const el = document.getElementById('toast');
-            el.innerText = msg;
-            el.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => el.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
+        function renderRadar() {
+            const ctx = document.getElementById('signalRadar').getContext('2d');
+            if(radarChart) radarChart.destroy();
 
-        function getCheckedSources() {
-            const checkboxes = document.querySelectorAll('#source-bias-container input[type="checkbox"]:checked');
-            return Array.from(checkboxes).map(cb => cb.value);
+            const dataPoints = currentSignals.map(s => ({
+                x: s.score_novelty || Math.random()*10,
+                y: s.score_evidence || Math.random()*10,
+                r: 10, // Bubble radius
+                title: s.title
+            }));
+
+            radarChart = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Signals Landscape',
+                        data: dataPoints,
+                        backgroundColor: 'rgba(154, 27, 190, 0.6)',
+                        borderColor: '#9A1BBE',
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Novelty (0-10)' }, min: 0, max: 10 },
+                        y: { title: { display: true, text: 'Evidence (0-10)' }, min: 0, max: 10 }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.raw.title;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         async function generateSignal(isBroad) {
-            if (isProcessing) return;
-            
-            const topicInput = document.getElementById('topic-input');
-            const resultContainer = document.getElementById('result-container');
-            const searchBtn = document.getElementById('search-btn');
+            const topic = document.getElementById('topic-input').value;
             const loader = document.getElementById('btn-loader');
-            const countVal = document.getElementById('signal-count').value;
-            const missionVal = document.getElementById('mission-select').value;
+            const btn = document.getElementById('search-btn');
+            const count = document.getElementById('signal-count').value;
+            const mission = document.getElementById('mission-select').value;
             
-            let message = topicInput.value.trim();
-
-            if (!message && !isBroad) {
-                showToast("Please enter a topic first.", "error");
-                topicInput.focus();
-                return;
-            }
-
-            isProcessing = true;
-            searchBtn.disabled = true;
-            loader.classList.remove('hidden');
+            if(!topic && !isBroad) return alert("Please enter a topic");
             
-            // Clear previous results if new search
-            resultContainer.innerHTML = '';
-            
-            // Construct Payload
-            // We inject the count and mission into the prompt text for the backend regex/logic
-            let finalPrompt = "";
-            if (isBroad) {
-                finalPrompt = `Find ${countVal} new, high-novelty weak signals related to ${missionVal === 'All Missions' ? 'emerging innovation' : missionVal}.`;
-                if (message) finalPrompt += ` Context: ${message}`;
-            } else {
-                finalPrompt = `Find ${countVal} signals about ${message}`;
-                if (missionVal !== 'All Missions') finalPrompt += ` specifically for the ${missionVal} mission`;
-            }
+            btn.disabled = true; loader.classList.remove('hidden');
+            document.getElementById('result-container').innerHTML = '<div class="text-center py-10 animate-pulse text-gray-500">Scanning & Verifying (Deep Read Enabled)...</div>';
+            document.getElementById('view-controls').classList.add('hidden');
 
-            const payload = {
-                message: finalPrompt,
-                time_filter: document.getElementById('time-filter').value,
-                source_types: getCheckedSources(),
-                tech_mode: document.getElementById('tech-mode').checked
-            };
-
-            // Add placeholder skeleton
-            resultContainer.innerHTML = `
-                <div class="animate-pulse bg-white p-6 rounded-xl border border-gray-200 h-48 flex items-center justify-center text-gray-400">
-                    Scanning horizon... this may take 30-60 seconds...
-                </div>
-            `;
+            let prompt = isBroad ? 
+                `Find ${count} high-novelty signals about ${mission}. Context: ${topic}` : 
+                `Find ${count} signals about ${topic} for ${mission}`;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                const res = await fetch(API_BASE_URL + '/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: prompt,
+                        time_filter: document.getElementById('time-filter').value,
+                        source_types: getCheckedSources(),
+                        tech_mode: document.getElementById('tech-mode').checked
+                    })
                 });
-
-                if (!response.ok) throw new Error("API Error");
+                const data = await res.json();
                 
-                const data = await response.json();
-                resultContainer.innerHTML = ''; // Clear skeleton
-
-                if (data.ui_type === 'signal_list') {
-                    data.items.forEach((item, index) => createSignalCard(item, index));
+                if(data.ui_type === 'signal_list') {
+                    currentSignals = data.items;
+                    document.getElementById('result-container').innerHTML = '';
+                    currentSignals.forEach(s => createCard(s));
+                    document.getElementById('view-controls').classList.remove('hidden');
                 } else {
-                    resultContainer.innerHTML = `<div class="p-6 bg-white rounded-xl border border-gray-200 text-gray-700">${data.content}</div>`;
+                    document.getElementById('result-container').innerHTML = `<div class="p-4 bg-gray-100">${data.content}</div>`;
                 }
-
-            } catch (error) {
-                console.error(error);
-                resultContainer.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">Error connecting to Signal Scout. Check API keys.</div>`;
-            } finally {
-                isProcessing = false;
-                searchBtn.disabled = false;
-                loader.classList.add('hidden');
-            }
+            } catch(e) { console.error(e); alert("Scan failed."); }
+            finally { btn.disabled = false; loader.classList.add('hidden'); }
         }
 
-        function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
-            const container = document.getElementById(containerId);
-            
-            // Mission Badge Logic
-            let missionClass = "bg-gray-100 text-gray-800";
-            const m = (signal.mission || "").toLowerCase();
-            if (m.includes("fairer")) missionClass = "bg-[#9A1BBE]/10 text-[#9A1BBE]"; // Purple
-            else if (m.includes("sustainable")) missionClass = "bg-[#18A48C]/10 text-[#18A48C]"; // Green
-            else if (m.includes("healthy")) missionClass = "bg-[#97D9E3]/20 text-[#0F294A]"; // Teal/Navy
-            
-            // Shareable Badge Logic (RAG Scoring)
-            // Default to 'Maybe' (Yellow) if undefined
-            const shareStatus = signal.shareable || "Maybe"; 
-            let shareClass = "bg-yellow-100 text-yellow-800 border-yellow-200"; // Maybe
-            if (shareStatus.toLowerCase() === "yes") shareClass = "bg-green-100 text-green-800 border-green-200";
-            if (shareStatus.toLowerCase() === "no") shareClass = "bg-red-100 text-red-800 border-red-200";
-
-            const card = document.createElement('div');
-            card.className = "bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300 overflow-hidden group";
-            card.innerHTML = `
-                <div class="p-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${missionClass}">
-                            ${signal.mission || 'General'}
-                        </span>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400 font-medium">Quality Score</span>
-                            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-black text-white font-bold text-sm">
-                                ${signal.score || '-'}
-                            </span>
-                        </div>
-                    </div>
-
-                    <h3 class="text-xl font-nesta-display text-gray-900 mb-3 leading-tight group-hover:text-nesta-purple transition-colors">
-                        <a href="${signal.final_url}" target="_blank" class="hover:underline">${signal.title}</a>
-                    </h3>
-                    <p class="text-gray-600 mb-5 leading-relaxed text-sm">
-                        ${signal.hook}
-                    </p>
-
-                    <div class="grid grid-cols-3 gap-2 mb-5 border-t border-b border-gray-100 py-4">
-                        <div class="text-center">
-                            <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Novelty</div>
-                            <div class="font-bold text-lg text-gray-800">${signal.score_novelty || 0}/10</div>
-                        </div>
-                        <div class="text-center border-l border-gray-100">
-                            <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Evidence</div>
-                            <div class="font-bold text-lg text-gray-800">${signal.score_evidence || 0}/10</div>
-                        </div>
-                        <div class="text-center border-l border-gray-100">
-                            <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Evocativeness</div>
-                            <div class="font-bold text-lg text-gray-800">${signal.score_evocativeness || 0}/10</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between text-xs text-gray-500">
-                        <div class="flex items-center gap-2">
-                             <a href="${signal.final_url}" target="_blank" class="flex items-center gap-1 hover:text-black">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                Source
-                             </a>
-                             <span class="text-gray-300">|</span>
-                             <span>${signal.source_date || 'Recent'}</span>
-                        </div>
-                        
-                        ${!isSavedView ? 
-                            `<div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${shareClass}">
-                                    Shareable: ${shareStatus}
-                                </span>
-                             </div>` 
-                            : ''
-                        }
-                    </div>
-
-                    ${isSavedView ? `
-                    <div class="mt-4 pt-4 border-t border-gray-100 bg-gray-50 -mx-6 -mb-6 p-4 space-y-3">
-                         <div class="flex gap-2">
-                            <select id="saved-shareable-${index}" class="text-xs border-gray-300 rounded focus:ring-black">
-                                <option value="Yes" ${shareStatus === 'Yes' ? 'selected' : ''}>Yes</option>
-                                <option value="Maybe" ${shareStatus === 'Maybe' ? 'selected' : ''}>Maybe</option>
-                                <option value="No" ${shareStatus === 'No' ? 'selected' : ''}>No</option>
-                            </select>
-                            <input type="text" id="saved-comment-${index}" class="flex-1 text-xs border-gray-300 rounded focus:ring-black" placeholder="Add feedback/comment..." value="${signal.feedback || ''}">
-                         </div>
-                         <button onclick="updateSavedSignal('${signal.final_url}', '${signal.title.replace(/'/g, "\\'")}', ${signal._row})" class="w-full bg-black text-white text-xs font-bold py-2 rounded hover:bg-gray-800 transition">Update Signal</button>
-                    </div>
-                    ` : ''}
-
+        function createCard(s, containerId='result-container') {
+            const div = document.createElement('div');
+            div.className = "bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition";
+            div.innerHTML = `
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-1 rounded">${s.mission}</span>
+                    <span class="text-sm font-bold bg-black text-white px-2 rounded-full flex items-center">${s.score||0}</span>
+                </div>
+                <h3 class="text-lg font-bold mb-2"><a href="${s.url}" target="_blank" class="hover:underline">${s.title}</a></h3>
+                <p class="text-sm text-gray-600 mb-4">${s.hook}</p>
+                <div class="flex gap-4 text-xs font-bold text-gray-400">
+                    <span>NOVELTY: <span class="text-black">${s.score_novelty}</span></span>
+                    <span>EVIDENCE: <span class="text-black">${s.score_evidence}</span></span>
                 </div>
             `;
-            
-            container.appendChild(card);
+            document.getElementById(containerId).appendChild(div);
         }
 
         async function openSavedSignals() {
             document.getElementById('saved-modal').classList.remove('hidden');
+            const res = await fetch(API_BASE_URL + '/api/saved');
+            const data = await res.json();
             const list = document.getElementById('saved-list');
-            list.innerHTML = '<div class="text-center py-10 text-gray-500">Loading database from Sheets...</div>';
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/saved`);
-                const data = await res.json();
-                list.innerHTML = '';
-                if(data.length === 0) list.innerHTML = '<div class="text-center py-10">No saved signals yet.</div>';
-                
-                data.forEach((sig, i) => {
-                    const normalized = {
-                        title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
-                        mission: sig.Mission, 
-                        score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
-                        shareable: sig.Shareable, feedback: sig.Feedback || sig.User_Comment, _row: sig._row,
-                        source_date: sig.Source_Date
-                    };
-                    createSignalCard(normalized, i, true, 'saved-list');
-                });
-            } catch(e) { list.innerHTML = '<div class="text-center text-red-500 py-10">Failed to load database.</div>'; }
+            list.innerHTML = '';
+            currentSaved = data; // Store for CSV export if needed
+            data.forEach(s => {
+                // Adapt saved format to card format
+                createCard({
+                    title: s.Title, url: s.URL, hook: s.Hook, mission: s.Mission,
+                    score: s.Score, score_novelty: s.Score_Novelty, score_evidence: s.Score_Evidence
+                }, 'saved-list');
+            });
         }
 
-        function closeSavedSignals() { document.getElementById('saved-modal').classList.add('hidden'); }
-
-        async function updateSavedSignal(url, title, rowId) {
-            const shareVal = document.getElementById(`saved-shareable-${rowId}`)?.value || 'Maybe';
-            const commentVal = document.getElementById(`saved-comment-${rowId}`)?.value || '';
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "Updating...";
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/update`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        url, title, 
-                        shareable: shareVal, 
-                        user_comment: commentVal, feedback: commentVal,
-                        user_status: shareVal === 'No' ? 'Rejected' : 'Pending' 
-                    })
-                });
-                if(res.ok) {
-                    showToast('Database updated successfully', 'success');
-                    openSavedSignals(); // Refresh list to show new color status
-                } else {
-                    showToast('Update failed', 'error');
-                }
-            } catch (e) { console.error(e); showToast('Update error', 'error'); }
-            finally { btn.innerText = originalText; }
+        function downloadCSV() {
+            if(!currentSaved) return alert("Open Database first to load data");
+            let csv = "Title,URL,Hook,Score,Mission\n";
+            currentSaved.forEach(r => {
+                csv += `"${r.Title}","${r.URL}","${r.Hook.replace(/"/g, '""')}",${r.Score},"${r.Mission}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'signals_export.csv';
+            a.click();
         }
+        
+        let currentSaved = null;
     </script>
 </body>
 </html>
