@@ -42,10 +42,10 @@ app = FastAPI()
 # ✅ STRONG CORS CONFIGURATION
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allows all origins
+    allow_origins=["*"], 
     allow_credentials=True,
-    allow_methods=["*"], # Allows all methods
-    allow_headers=["*"], # Allows all headers
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 # --- HELPERS ---
@@ -195,6 +195,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
+    run = None
     try:
         print(f"Incoming: {req.message}")
         prompt = req.message
@@ -213,60 +214,76 @@ async def chat_endpoint(req: ChatRequest):
         accumulated_signals = []
         seen_urls = set()
 
+        # Polling Loop with Cancellation Support
         while True:
-            run_status = await asyncio.to_thread(client.beta.threads.runs.retrieve, thread_id=run.thread_id, run_id=run.id)
-            
-            if run_status.status == 'requires_action':
-                tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
-                tool_outputs = []
+            try:
+                run_status = await asyncio.to_thread(client.beta.threads.runs.retrieve, thread_id=run.thread_id, run_id=run.id)
                 
-                for tool in tool_calls:
-                    if tool.function.name == "perform_web_search":
-                        args = json.loads(tool.function.arguments)
-                        d_map = {"Past Month": "m1", "Past 3 Months": "m3", "Past 6 Months": "m6", "Past Year": "y1"}
-                        res = await perform_google_search(args.get("query"), d_map.get(req.time_filter, "m1"))
-                        tool_outputs.append({"tool_call_id": tool.id, "output": res})
-                    elif tool.function.name == "fetch_article_text":
-                        args = json.loads(tool.function.arguments)
-                        content = await fetch_article_text(args.get("url"))
-                        tool_outputs.append({"tool_call_id": tool.id, "output": content})
-                    elif tool.function.name == "display_signal_card":
-                        args = json.loads(tool.function.arguments)
-                        card = {
-                            "title": args.get("title"), "url": args.get("final_url") or args.get("url"),
-                            "hook": args.get("hook"), "score": args.get("score"),
-                            "mission": args.get("mission", "General"),
-                            "lenses": args.get("lenses", ""),
-                            "score_novelty": args.get("score_novelty", 0),
-                            "score_evidence": args.get("score_evidence", 0),
-                            "score_evocativeness": args.get("score_evocativeness", 0),
-                            "source_date": args.get("published_date", "Recent"),
-                            "ui_type": "signal_card"
-                        }
-                        if card["url"] and card["url"] not in seen_urls:
-                            accumulated_signals.append(card)
-                            seen_urls.add(card["url"])
-                            try: upsert_signal(card)
-                            except: pass
-                            tool_outputs.append({"tool_call_id": tool.id, "output": "displayed"})
-                        else:
-                            tool_outputs.append({"tool_call_id": tool.id, "output": "duplicate_skipped"})
+                if run_status.status == 'requires_action':
+                    tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
+                    tool_outputs = []
+                    
+                    for tool in tool_calls:
+                        if tool.function.name == "perform_web_search":
+                            args = json.loads(tool.function.arguments)
+                            d_map = {"Past Month": "m1", "Past 3 Months": "m3", "Past 6 Months": "m6", "Past Year": "y1"}
+                            res = await perform_google_search(args.get("query"), d_map.get(req.time_filter, "m1"))
+                            tool_outputs.append({"tool_call_id": tool.id, "output": res})
+                        elif tool.function.name == "fetch_article_text":
+                            args = json.loads(tool.function.arguments)
+                            content = await fetch_article_text(args.get("url"))
+                            tool_outputs.append({"tool_call_id": tool.id, "output": content})
+                        elif tool.function.name == "display_signal_card":
+                            args = json.loads(tool.function.arguments)
+                            card = {
+                                "title": args.get("title"), "url": args.get("final_url") or args.get("url"),
+                                "hook": args.get("hook"), "score": args.get("score"),
+                                "mission": args.get("mission", "General"),
+                                "lenses": args.get("lenses", ""),
+                                "score_novelty": args.get("score_novelty", 0),
+                                "score_evidence": args.get("score_evidence", 0),
+                                "score_evocativeness": args.get("score_evocativeness", 0),
+                                "source_date": args.get("published_date", "Recent"),
+                                "ui_type": "signal_card"
+                            }
+                            if card["url"] and card["url"] not in seen_urls:
+                                accumulated_signals.append(card)
+                                seen_urls.add(card["url"])
+                                # Upsert in thread to prevent blocking cancellation
+                                try: await asyncio.to_thread(upsert_signal, card)
+                                except: pass
+                                tool_outputs.append({"tool_call_id": tool.id, "output": "displayed"})
+                            else:
+                                tool_outputs.append({"tool_call_id": tool.id, "output": "duplicate_skipped"})
 
-                await asyncio.to_thread(client.beta.threads.runs.submit_tool_outputs, thread_id=run.thread_id, run_id=run.id, tool_outputs=tool_outputs)
+                    await asyncio.to_thread(client.beta.threads.runs.submit_tool_outputs, thread_id=run.thread_id, run_id=run.id, tool_outputs=tool_outputs)
 
-            elif run_status.status == 'completed':
-                if accumulated_signals:
-                    return {"ui_type": "signal_list", "items": accumulated_signals}
-                else:
-                    msgs = await asyncio.to_thread(client.beta.threads.messages.list, thread_id=run.thread_id)
-                    return {"ui_type": "text", "content": msgs.data[0].content[0].text.value}
-            
-            elif run_status.status in ['failed', 'expired', 'cancelled']:
-                return {"ui_type": "text", "content": f"System Error: {run_status.last_error}"}
-            await asyncio.sleep(1)
+                elif run_status.status == 'completed':
+                    if accumulated_signals:
+                        return {"ui_type": "signal_list", "items": accumulated_signals}
+                    else:
+                        msgs = await asyncio.to_thread(client.beta.threads.messages.list, thread_id=run.thread_id)
+                        return {"ui_type": "text", "content": msgs.data[0].content[0].text.value}
+                
+                elif run_status.status in ['failed', 'expired', 'cancelled']:
+                    return {"ui_type": "text", "content": f"System Error: {run_status.last_error}"}
+                
+                await asyncio.sleep(1)
+
+            except asyncio.CancelledError:
+                print(f"🛑 Scan cancelled by user. Terminating Run {run.id}...")
+                try:
+                    await asyncio.to_thread(client.beta.threads.runs.cancel, thread_id=run.thread_id, run_id=run.id)
+                except Exception as e:
+                    print(f"Error cancelling run: {e}")
+                raise # Re-raise to allow FastAPI to close the connection properly
 
     except Exception as e:
         print(f"Server Error: {e}")
+        # Only check for cancellation if 'run' was created
+        if isinstance(e, asyncio.CancelledError) and run:
+             try: await asyncio.to_thread(client.beta.threads.runs.cancel, thread_id=run.thread_id, run_id=run.id)
+             except: pass
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/saved")
@@ -283,7 +300,6 @@ def update_sig(req: Dict[str, Any]):
 
 @app.get("/")
 def serve_home():
-    # Fallback to serving the HTML if running as a monolithic app on Render
     try:
         with open("index.html", "r") as f:
             return HTMLResponse(content=f.read(), status_code=200)
