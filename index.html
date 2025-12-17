@@ -435,8 +435,9 @@
             return clean;
         }
 
-        function getLensBadges(lensesStr) {
+        function getLensBadges(lensesStr, styleClass) {
             if (!lensesStr) return '';
+            const style = styleClass || "bg-gray-50 text-nesta-darkgrey border-gray-200"; 
             const tags = lensesStr.split(',').map(t => t.trim());
             let html = '<div class="flex flex-wrap gap-2 mb-4">';
             tags.forEach(tag => {
@@ -445,7 +446,7 @@
                     if (tag.toLowerCase().includes(key.toLowerCase())) emoji = icon;
                 }
                 if (emoji) {
-                    html += `<span class="px-2 py-1 border border-gray-200 rounded text-[10px] font-bold text-nesta-darkgrey bg-gray-50" title="${tag}">${emoji} ${tag}</span>`;
+                    html += `<span class="px-2 py-1 border rounded text-[10px] font-bold ${style}" title="${tag}">${emoji} ${tag}</span>`;
                 }
             });
             html += '</div>';
@@ -621,44 +622,71 @@
 
         function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
             const container = document.getElementById(containerId);
-            
-            // MISSION COLOUR LOGIC
-            let barColor = "bg-nesta-darkgrey"; 
-            
-            // DEFAULT: Dark Grey Background with White Text (High Contrast for unknown/adjacent missions)
-            let badgeColor = "bg-nesta-darkgrey text-white"; 
-
             const m = (signal.mission || "").toLowerCase();
             
+            // --- STYLING CONFIGURATION ---
+            
+            // 1. DEFAULT / MISSION ADJACENT (Dark Mode)
+            let styles = {
+                cardBg: "bg-nesta-darkgrey",
+                barColor: "bg-nesta-darkgrey", 
+                badge: "bg-white text-nesta-navy", 
+                title: "text-white hover:text-nesta-aqua",
+                desc: "text-white", 
+                accentLabel: "text-white", 
+                scoreVal: "text-white",
+                gridBg: "bg-white/5 border-white/10", 
+                lens: "bg-white/10 text-white border-white/20",
+                footer: "text-gray-300",
+                inputBg: "bg-white/10 text-white border-white/20 placeholder-gray-400 focus:border-nesta-aqua",
+                selectBg: "bg-nesta-navy text-white border-white/20",
+                button: "bg-nesta-aqua text-nesta-navy hover:bg-white"
+            };
+
+            // 2. STANDARD MISSIONS (Colored Backgrounds + Navy Text)
+            function colorCardOverrides(bgColor) {
+                return {
+                    cardBg: bgColor,
+                    barColor: bgColor, 
+                    badge: "bg-white text-nesta-navy", 
+                    title: "text-nesta-navy hover:text-white",
+                    desc: "text-nesta-navy", 
+                    accentLabel: "text-nesta-navy", 
+                    scoreVal: "text-nesta-navy",
+                    gridBg: "bg-white/20 border-white/20", 
+                    lens: "bg-white/40 text-nesta-navy border-white/20",
+                    footer: "text-nesta-navy/70",
+                    inputBg: "bg-white/40 text-nesta-navy border-white/30 placeholder-nesta-navy/50 focus:border-nesta-navy",
+                    selectBg: "bg-white/40 text-nesta-navy border-white/30",
+                    button: "bg-nesta-navy text-white hover:bg-white hover:text-nesta-navy"
+                };
+            }
+
             if (m.includes("fairer")) { 
-                barColor = "bg-nesta-yellow"; 
-                badgeColor = "bg-nesta-yellow text-nesta-navy"; 
+                styles = { ...styles, ...colorCardOverrides("bg-nesta-yellow") };
             }
             else if (m.includes("sustainable")) { 
-                barColor = "bg-nesta-green"; 
-                badgeColor = "bg-nesta-green text-nesta-navy"; 
+                styles = { ...styles, ...colorCardOverrides("bg-nesta-green") };
             }
             else if (m.includes("healthy")) { 
-                barColor = "bg-nesta-pink"; 
-                badgeColor = "bg-nesta-pink text-nesta-navy"; 
+                styles = { ...styles, ...colorCardOverrides("bg-nesta-pink") };
             }
 
             const missionEmoji = getMissionEmoji(signal.mission || '');
             const sourceName = formatSource(signal.final_url || signal.url);
-            const lensTags = getLensBadges(signal.lenses || '');
+            const lensTags = getLensBadges(signal.lenses || '', styles.lens);
             const cleanHook = cleanText(signal.hook);
             
-            // Style class for metadata labels (Novelty, Evidence, etc) - Darker Grey
-            const accentClass = "text-[9px] text-nesta-darkgrey uppercase font-bold mb-1 tracking-wider";
+            const accentClass = `text-[9px] uppercase font-bold mb-1 tracking-wider ${styles.accentLabel}`;
 
             const card = document.createElement('div');
             card.id = `${containerId}-card-${index}`;
-            card.className = `bg-white p-7 border border-gray-100 border-t-8 ${barColor} card-hover flex flex-col h-full shadow-soft rounded-xl animate-fade-in-up transition-all duration-300`;
-            card.style.borderTopColor = barColor.replace('bg-', 'var(--color-nesta-');
+            // Use border-black/5 for subtle definition on colored cards
+            card.className = `${styles.cardBg} p-7 border border-black/5 flex flex-col h-full shadow-soft rounded-xl animate-fade-in-up transition-all duration-300 transform hover:-translate-y-1`;
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-5">
-                    <span class="px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest ${badgeColor}">
+                    <span class="px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest ${styles.badge}">
                         ${missionEmoji} ${signal.mission || 'General'}
                     </span>
                     <span class="flex items-center justify-center w-8 h-8 bg-nesta-black text-white font-bold text-sm rounded-full shadow-md">
@@ -666,41 +694,41 @@
                     </span>
                 </div>
                 
-                <h3 class="text-2xl brand-font text-nesta-navy mb-3 leading-tight hover:text-nesta-blue transition-colors">
-                    <a href="${signal.final_url || signal.url}" target="_blank" class="hover:underline decoration-2 underline-offset-4 decoration-nesta-blue/30">${signal.title}</a>
+                <h3 class="text-2xl brand-font mb-3 leading-tight transition-colors ${styles.title}">
+                    <a href="${signal.final_url || signal.url}" target="_blank" class="hover:underline decoration-2 underline-offset-4 decoration-current opacity-90 hover:opacity-100">${signal.title}</a>
                 </h3>
                 
                 ${lensTags}
 
-                <p class="text-sm text-nesta-darkgrey mb-6 leading-relaxed flex-grow font-body">${cleanHook}</p>
+                <p class="text-sm mb-6 leading-relaxed flex-grow font-body ${styles.desc}">${cleanHook}</p>
                 
-                <div class="grid grid-cols-3 gap-2 py-4 border-t border-b border-gray-100 mb-5 bg-gray-50/50 rounded-sm">
+                <div class="grid grid-cols-3 gap-2 py-4 border-t border-b mb-5 rounded-sm ${styles.gridBg}">
                      <div class="text-center">
                         <div class="${accentClass}">Novelty</div>
-                        <div class="font-bold text-nesta-navy text-lg">${signal.score_novelty}/10</div>
+                        <div class="font-bold text-lg ${styles.scoreVal}">${signal.score_novelty}/10</div>
                      </div>
-                     <div class="text-center border-l border-gray-200">
+                     <div class="text-center border-l border-black/5">
                         <div class="${accentClass}">Evidence</div>
-                        <div class="font-bold text-nesta-navy text-lg">${signal.score_evidence}/10</div>
+                        <div class="font-bold text-lg ${styles.scoreVal}">${signal.score_evidence}/10</div>
                      </div>
-                     <div class="text-center border-l border-gray-200">
+                     <div class="text-center border-l border-black/5">
                         <div class="${accentClass}">Impact</div>
-                        <div class="font-bold text-nesta-navy text-lg">${signal.score_evocativeness}/10</div>
+                        <div class="font-bold text-lg ${styles.scoreVal}">${signal.score_evocativeness}/10</div>
                      </div>
                 </div>
                 
-                <div class="flex items-center justify-between text-xs font-bold text-gray-500 mt-auto">
+                <div class="flex items-center justify-between text-xs font-bold mt-auto ${styles.footer}">
                     <span>${signal.source_date || 'Recent'}</span>
-                    <a href="${signal.final_url || signal.url}" target="_blank" class="flex items-center gap-1 hover:text-nesta-blue transition group">
+                    <a href="${signal.final_url || signal.url}" target="_blank" class="flex items-center gap-1 hover:opacity-100 opacity-70 transition group">
                         ${sourceName} <span class="text-lg leading-none group-hover:translate-x-0.5 transition-transform">↗</span>
                     </a>
                 </div>
 
                 ${isSavedView ? `
-                <div class="mt-5 pt-5 border-t border-gray-100 space-y-4">
+                <div class="mt-5 pt-5 border-t border-black/5 space-y-4">
                     <div class="space-y-1">
                         <label for="saved-shareable-${index}" class="${accentClass}">Status</label>
-                        <select id="saved-shareable-${index}" class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-3 py-2 font-bold text-nesta-navy focus:border-nesta-blue focus:ring-0">
+                        <select id="saved-shareable-${index}" class="w-full text-xs rounded px-3 py-2 font-bold focus:ring-0 focus:border-current ${styles.selectBg}">
                             <option value="Yes" ${signal.shareable === 'Yes' ? 'selected' : ''}>Yes - Shareable</option>
                             <option value="Maybe" ${signal.shareable === 'Maybe' ? 'selected' : ''}>Maybe</option>
                             <option value="No" ${signal.shareable === 'No' ? 'selected' : ''}>No - Reject</option>
@@ -708,9 +736,9 @@
                     </div>
                     <div class="space-y-1">
                          <label for="saved-comment-${index}" class="${accentClass}">Notes</label>
-                         <input type="text" id="saved-comment-${index}" class="w-full text-xs bg-gray-50 border border-gray-200 px-3 py-2 text-nesta-navy focus:border-nesta-blue focus:ring-0 rounded" placeholder="Add comment..." value="${signal.feedback || ''}">
+                         <input type="text" id="saved-comment-${index}" class="w-full text-xs px-3 py-2 rounded focus:ring-0 ${styles.inputBg}" placeholder="Add comment..." value="${signal.feedback || ''}">
                     </div>
-                    <button onclick="updateSavedSignal('${signal.final_url || signal.url}', '${(signal.title || "").replace(/'/g, "\\'")}', ${index})" class="w-full py-2.5 bg-nesta-navy text-white text-xs font-bold uppercase rounded hover:bg-nesta-blue transition shadow-md">Save Changes</button>
+                    <button onclick="updateSavedSignal('${signal.final_url || signal.url}', '${(signal.title || "").replace(/'/g, "\\'")}', ${index})" class="w-full py-2.5 text-xs font-bold uppercase rounded transition shadow-md ${styles.button}">Save Changes</button>
                 </div>` : ''}
             `;
             container.appendChild(card);
