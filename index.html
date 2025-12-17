@@ -4,31 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nesta Signal Scout Pro</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         nesta: {
-                            blue: '#0000FF',
-                            green: '#18A48C',
-                            aqua: '#97D9E3',
-                            purple: '#9A1BBE',
-                            violet: '#A59BEE',
-                            red: '#EB003B',
-                            pink: '#F6A4B7',
-                            orange: '#FF6E47',
-                            yellow: '#FDB633',
-                            navy: '#0F294A',
-                            darkgrey: '#646363',
-                            sand: '#D2C9C0',
-                            lightsand: '#E5E0D8',
-                            black: '#000000',
-                            white: '#FFFFFF'
+                            blue: '#0000FF', green: '#18A48C', aqua: '#97D9E3',
+                            purple: '#9A1BBE', violet: '#A59BEE', red: '#EB003B',
+                            pink: '#F6A4B7', orange: '#FF6E47', yellow: '#FDB633',
+                            navy: '#0F294A', darkgrey: '#646363', sand: '#D2C9C0',
+                            lightsand: '#E5E0D8', black: '#000000', white: '#FFFFFF'
                         }
                     },
                     fontFamily: {
@@ -49,40 +37,20 @@
             }
         }
     </script>
-
     <style>
-        /* FONTS */
         @font-face { font-family: 'Zosia Display'; src: url('Zosia-Display.woff2') format('woff2'); font-weight: bold; font-style: normal; }
         @font-face { font-family: 'Averta'; src: url('Averta-Regular.otf') format('opentype'); font-weight: normal; font-style: normal; }
         @font-face { font-family: 'Averta'; src: url('Averta-Semibold.otf') format('opentype'); font-weight: bold; font-style: normal; }
-
         body { font-family: 'Averta', sans-serif; background-color: #E5E0D8; color: #0F294A; }
         h1, h2, h3, .brand-font { font-family: 'Zosia Display', sans-serif; }
-
-        /* UTILITIES */
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(15, 41, 74, 0.05); }
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(15, 41, 74, 0.1); }
-        
-        /* CUSTOM RANGE SLIDER (Nesta Blue Thumb) */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
-            background: #0000FF; cursor: pointer; margin-top: -8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; background: #D2C9C0; border-radius: 2px;
-        }
-
-        /* LOADING SPINNER */
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #0000FF; cursor: pointer; margin-top: -8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #D2C9C0; border-radius: 2px; }
         .loader { width: 24px; height: 24px; border: 3px solid #0000FF; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* CHECKBOX STYLES */
-        .bias-chip input:checked + span {
-            background-color: #0F294A; /* Navy */
-            color: #FFFFFF; /* White */
-            border-color: #0F294A;
-        }
+        .bias-chip input:checked + span { background-color: #0F294A; color: #FFFFFF; border-color: #0F294A; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased bg-nesta-lightsand" onload="initDashboard()">
@@ -110,11 +78,10 @@
     </header>
 
     <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10 space-y-12">
-        
         <div class="bg-white rounded-xl shadow-lg p-8 space-y-8 relative overflow-hidden group border border-nesta-sand/50">
-            
             <div class="relative">
-                <input type="text" id="topic-input" 
+                <label for="topic-input" class="sr-only">Search Topic</label>
+                <input type="text" id="topic-input" name="topic"
                     class="w-full text-3xl font-display text-nesta-navy placeholder-nesta-sand border-b-2 border-nesta-sand py-4 focus:outline-none focus:border-nesta-blue transition-colors bg-transparent"
                     placeholder="Scanning for... (e.g. 'Synthetic Biology')"
                     onkeypress="handleEnter(event)">
@@ -124,11 +91,10 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
-                
                 <div class="md:col-span-4 space-y-3">
-                    <label class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Nesta Mission</label>
+                    <label for="mission-select" class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Nesta Mission</label>
                     <div class="relative">
-                        <select id="mission-select" class="w-full appearance-none bg-nesta-lightsand/30 border-b border-nesta-sand text-nesta-navy font-bold py-3 px-4 rounded-t focus:ring-0 focus:border-nesta-blue cursor-pointer hover:bg-nesta-lightsand/50 transition">
+                        <select id="mission-select" name="mission" class="w-full appearance-none bg-nesta-lightsand/30 border-b border-nesta-sand text-nesta-navy font-bold py-3 px-4 rounded-t focus:ring-0 focus:border-nesta-blue cursor-pointer hover:bg-nesta-lightsand/50 transition">
                             <option class="text-nesta-navy" value="All Missions">All Missions</option>
                             <option class="text-nesta-navy" value="A Fairer Start">A Fairer Start 📚 (Yellow)</option>
                             <option class="text-nesta-navy" value="A Healthy Life">A Healthy Life ❤️‍🩹 (Pink)</option>
@@ -142,19 +108,19 @@
 
                 <div class="md:col-span-3 space-y-3">
                     <div class="flex justify-between">
-                        <label class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Quantity</label>
+                        <label for="signal-count" class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Quantity</label>
                         <span id="count-display" class="text-xs font-bold text-nesta-blue bg-blue-50 px-2 py-0.5 rounded">5 Signals</span>
                     </div>
-                    <input type="range" id="signal-count" min="1" max="10" value="5" 
+                    <input type="range" id="signal-count" name="count" min="1" max="10" value="5" 
                            oninput="document.getElementById('count-display').innerText = this.value + ' Signals'"
                            class="w-full">
                 </div>
 
                 <div class="md:col-span-5 flex flex-wrap gap-4 justify-end">
-                    <label class="flex items-center gap-3 bg-nesta-lightsand/30 px-4 py-3 border border-nesta-sand rounded cursor-pointer hover:bg-nesta-lightsand transition">
-                        <input type="checkbox" id="tech-mode" class="w-5 h-5 text-nesta-blue border-nesta-sand rounded focus:ring-nesta-blue bg-white">
-                        <span class="text-sm font-bold text-nesta-navy">Hard Tech Only</span>
-                    </label>
+                    <div class="flex items-center gap-3 bg-nesta-lightsand/30 px-4 py-3 border border-nesta-sand rounded cursor-pointer hover:bg-nesta-lightsand transition">
+                        <input type="checkbox" id="tech-mode" name="tech_mode" class="w-5 h-5 text-nesta-blue border-nesta-sand rounded focus:ring-nesta-blue bg-white">
+                        <label for="tech-mode" class="text-sm font-bold text-nesta-navy cursor-pointer">Hard Tech Only</label>
+                    </div>
                     
                     <div class="flex bg-nesta-sand/20 p-1 rounded">
                         <button onclick="switchView('list')" id="btn-list" class="px-4 py-2 text-xs font-bold transition shadow-sm bg-nesta-navy text-white rounded-sm">List</button>
@@ -165,14 +131,27 @@
 
             <div class="pt-6 border-t border-nesta-sand/30 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex flex-wrap gap-2" id="source-bias-container">
-                    <label class="bias-chip cursor-pointer select-none"><input type="checkbox" value="Academia" class="peer sr-only"><span class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all">Academia</span></label>
-                    <label class="bias-chip cursor-pointer select-none"><input type="checkbox" value="VC" class="peer sr-only"><span class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all">VC Blogs</span></label>
-                    <label class="bias-chip cursor-pointer select-none"><input type="checkbox" value="Scientific Magazines" class="peer sr-only"><span class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all">Sci Mags</span></label>
-                    <label class="bias-chip cursor-pointer select-none"><input type="checkbox" value="Niche Forums" class="peer sr-only"><span class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all">Niche Forums</span></label>
+                    <div class="bias-chip relative">
+                        <input type="checkbox" id="bias-academia" name="source_bias" value="Academia" class="peer sr-only">
+                        <label for="bias-academia" class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all cursor-pointer block">Academia</label>
+                    </div>
+                    <div class="bias-chip relative">
+                        <input type="checkbox" id="bias-vc" name="source_bias" value="VC" class="peer sr-only">
+                        <label for="bias-vc" class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all cursor-pointer block">VC Blogs</label>
+                    </div>
+                    <div class="bias-chip relative">
+                        <input type="checkbox" id="bias-scimags" name="source_bias" value="Scientific Magazines" class="peer sr-only">
+                        <label for="bias-scimags" class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all cursor-pointer block">Sci Mags</label>
+                    </div>
+                    <div class="bias-chip relative">
+                        <input type="checkbox" id="bias-niche" name="source_bias" value="Niche Forums" class="peer sr-only">
+                        <label for="bias-niche" class="px-3 py-1.5 border border-nesta-sand rounded text-xs font-bold text-nesta-darkgrey hover:border-nesta-blue transition-all cursor-pointer block">Niche Forums</label>
+                    </div>
                 </div>
                 
                 <div class="flex gap-4 w-full md:w-auto">
-                    <select id="time-filter" class="bg-transparent text-sm font-bold text-nesta-navy focus:outline-none hover:text-nesta-blue cursor-pointer border border-nesta-sand px-2 rounded">
+                    <label for="time-filter" class="sr-only">Time Filter</label>
+                    <select id="time-filter" name="time_filter" class="bg-transparent text-sm font-bold text-nesta-navy focus:outline-none hover:text-nesta-blue cursor-pointer border border-nesta-sand px-2 rounded">
                         <option class="text-nesta-navy">Past Month</option>
                         <option class="text-nesta-navy">Past 3 Months</option>
                         <option class="text-nesta-navy">Past 6 Months</option>
@@ -208,7 +187,6 @@
                 <div class="h-64 bg-nesta-sand/30 rounded border border-nesta-sand animate-pulse"></div>
             </div>
         </section>
-
     </main>
 
     <footer class="bg-nesta-navy text-white mt-auto border-t border-nesta-aqua/20">
@@ -245,36 +223,19 @@
     </div>
 
     <script>
-        // CONFIG & STATE
-        // ✅ FIX: Force API URL to Render if on GitHub Pages
-        const API_BASE_URL = window.location.hostname.includes('github.io')
-            ? 'https://nesta-signal-scout.onrender.com'
-            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                ? 'http://127.0.0.1:8000' 
-                : window.location.origin);
+        // ✅ HARDCODED API URL AS REQUESTED
+        const API_BASE_URL = 'https://nesta-signal-scout.onrender.com';
 
         let currentSignals = [];
         let radarChart = null;
         let isProcessing = false;
         let currentSaved = [];
 
-        // EMOJI MAPPINGS
-        const MISSION_EMOJIS = {
-            'A Fairer Start': '📚',
-            'A Healthy Life': '❤️‍🩹',
-            'A Sustainable Future': '🌳'
-        };
-        const LENS_EMOJIS = {
-            'Social': '👥',
-            'Tech': '🤖',
-            'Media': '🎙️',
-            'Powerhouse': '⚡'
-        };
+        const MISSION_EMOJIS = { 'A Fairer Start': '📚', 'A Healthy Life': '❤️‍🩹', 'A Sustainable Future': '🌳' };
+        const LENS_EMOJIS = { 'Social': '👥', 'Tech': '🤖', 'Media': '🎙️', 'Powerhouse': '⚡' };
 
-        // INIT
         function initDashboard() { loadPreview(); }
 
-        // UTILS
         function getMissionEmoji(mission) {
             for (const [key, emoji] of Object.entries(MISSION_EMOJIS)) {
                 if (mission.includes(key)) return emoji;
@@ -310,6 +271,7 @@
         async function loadPreview() {
             const grid = document.getElementById('preview-grid');
             try {
+                console.log(`Fetching from: ${API_BASE_URL}/api/saved`);
                 const res = await fetch(`${API_BASE_URL}/api/saved`);
                 if(!res.ok) throw new Error("API Error");
                 const data = await res.json();
@@ -325,7 +287,7 @@
                     };
                     createSignalCard(normalized, i, false, 'preview-grid');
                 });
-            } catch(e) { console.error(e); grid.innerHTML = '<div class="col-span-3 text-center text-xs text-nesta-red">Unable to connect to database.</div>'; }
+            } catch(e) { console.error(e); grid.innerHTML = '<div class="col-span-3 text-center text-xs text-nesta-red">Unable to connect to database. Check Console.</div>'; }
         }
 
         function showToast(msg, type='success') {
@@ -390,6 +352,13 @@
                 const res = await fetch(`${API_BASE_URL}/api/chat`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
                 });
+                
+                if(!res.ok) {
+                    const text = await res.text();
+                    console.error("API Error Response:", text);
+                    throw new Error(`Server returned ${res.status}`);
+                }
+
                 const data = await res.json();
                 container.innerHTML = '';
 
@@ -419,7 +388,6 @@
             let badgeColor = "bg-gray-100 text-nesta-darkgrey";
             const m = (signal.mission || "").toLowerCase();
             
-            // MISSION COLOUR LOGIC (Pairings)
             if (m.includes("fairer")) { 
                 barColor = "bg-nesta-yellow"; 
                 badgeColor = "bg-nesta-yellow text-nesta-navy"; 
@@ -491,6 +459,7 @@
             
             try {
                 const res = await fetch(`${API_BASE_URL}/api/saved`);
+                if(!res.ok) throw new Error("API Error");
                 const data = await res.json();
                 list.innerHTML = '';
                 currentSaved = data;
