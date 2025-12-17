@@ -4,101 +4,253 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nesta Signal Scout Pro</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nesta: {
+                            purple: '#9A1BBE',
+                            green: '#18A48C',
+                            teal: '#97D9E3',
+                            navy: '#0F294A',
+                            black: '#000000',
+                            offwhite: '#F9FAFB'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['"Zosia Display"', 'sans-serif'],
+                        body: ['"Averta"', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root { --nesta-purple: #9A1BBE; --nesta-green: #18A48C; --nesta-navy: #0F294A; }
-        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
-        .font-nesta-display { font-family: 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--nesta-purple); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        /* FONTS: Assumes files are in the root directory */
+        @font-face { font-family: 'Zosia Display'; src: url('Zosia-Display.woff2') format('woff2'); font-weight: bold; font-style: normal; }
+        @font-face { font-family: 'Averta'; src: url('Averta-Regular.otf') format('opentype'); font-weight: normal; font-style: normal; }
+        @font-face { font-family: 'Averta'; src: url('Averta-Semibold.otf') format('opentype'); font-weight: bold; font-style: normal; }
+
+        body { font-family: 'Averta', sans-serif; background-color: #F9FAFB; color: #0F294A; }
+        h1, h2, h3, .brand-font { font-family: 'Zosia Display', sans-serif; }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+        /* UTILITIES */
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(15, 41, 74, 0.15); }
+        
+        /* CUSTOM RANGE SLIDER */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
+            background: #9A1BBE; cursor: pointer; margin-top: -8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: #E2E8F0; border-radius: 2px;
+        }
+
+        /* LOADING SPINNER */
+        .loader { width: 24px; height: 24px; border: 3px solid #FFF; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col text-nesta-navy">
+<body class="min-h-screen flex flex-col antialiased">
 
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-black text-white flex items-center justify-center font-bold rounded-sm">N</div>
-                <h1 class="font-nesta-display text-xl">Signal Scout <span class="text-nesta-purple">Pro</span></h1>
+                <div class="w-10 h-10 bg-nesta-black text-white flex items-center justify-center text-xl font-bold rounded-sm brand-font">N</div>
+                <div class="flex flex-col">
+                    <h1 class="text-2xl leading-none text-nesta-navy">Signal Scout <span class="text-nesta-purple">Pro</span></h1>
+                    <span class="text-[10px] font-bold tracking-widest uppercase text-gray-400">Discovery Hub</span>
+                </div>
             </div>
             <div class="flex gap-4">
-                <button onclick="downloadCSV()" class="text-sm font-semibold hover:text-nesta-purple">Export CSV</button>
-                <button onclick="openSavedSignals()" class="text-sm font-semibold hover:text-black">Database</button>
+                <button onclick="downloadCSV()" class="px-4 py-2 text-sm font-bold text-nesta-navy hover:text-nesta-purple transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export
+                </button>
+                <button onclick="openSavedSignals()" class="px-5 py-2 bg-nesta-navy text-white text-sm font-bold rounded hover:bg-nesta-purple transition shadow-lg shadow-nesta-navy/20">
+                    Database
+                </button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto w-full px-4 py-8 space-y-6">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10 space-y-8">
         
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
-            <input type="text" id="topic-input" class="block w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-black focus:border-black" placeholder="Enter topic (e.g. 'Synthetic Biology')..." onkeypress="handleEnter(event)">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-8 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-1 h-full bg-nesta-purple group-hover:h-full transition-all duration-500"></div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase">Mission</label>
-                    <select id="mission-select" class="w-full mt-1 p-2 border rounded bg-white"><option>All Missions</option><option>A Fairer Start</option><option>A Healthy Life</option><option>A Sustainable Future</option></select>
-                </div>
-                <div>
-                    <div class="flex justify-between"><label class="text-xs font-bold text-gray-500 uppercase">Count</label><span id="count-display" class="font-bold text-nesta-purple">5</span></div>
-                    <input type="range" id="signal-count" min="1" max="10" value="5" oninput="document.getElementById('count-display').innerText = this.value" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div class="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                    <span class="text-sm font-medium">Emerging Tech Only</span>
-                    <input type="checkbox" id="tech-mode" class="w-5 h-5 text-black rounded focus:ring-0">
+            <div class="relative">
+                <input type="text" id="topic-input" 
+                    class="w-full text-2xl font-light text-nesta-navy placeholder-gray-300 border-b-2 border-gray-100 py-4 focus:outline-none focus:border-nesta-purple transition-colors bg-transparent"
+                    placeholder="What are we scanning for today? (e.g. 'Synthetic Biology')"
+                    onkeypress="handleEnter(event)">
+                <div class="absolute right-0 top-4 text-gray-400">
+                    <svg class="w-8 h-8 animate-pulse-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
 
-            <div>
-                <label class="text-xs font-bold text-gray-500 uppercase mb-2 block">Source Bias</label>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+                
+                <div class="md:col-span-4 space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Nesta Mission</label>
+                    <div class="relative">
+                        <select id="mission-select" class="w-full appearance-none bg-gray-50 border border-gray-200 text-nesta-navy font-bold py-3 px-4 rounded focus:ring-1 focus:ring-nesta-purple focus:border-nesta-purple cursor-pointer">
+                            <option value="All Missions">All Missions</option>
+                            <option value="A Fairer Start">A Fairer Start</option>
+                            <option value="A Healthy Life">A Healthy Life</option>
+                            <option value="A Sustainable Future">A Sustainable Future</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-3 space-y-3">
+                    <div class="flex justify-between">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Quantity</label>
+                        <span id="count-display" class="text-xs font-bold text-nesta-purple bg-nesta-purple/10 px-2 py-0.5 rounded">5 Signals</span>
+                    </div>
+                    <input type="range" id="signal-count" min="1" max="10" value="5" 
+                           oninput="document.getElementById('count-display').innerText = this.value + ' Signals'"
+                           class="w-full">
+                </div>
+
+                <div class="md:col-span-5 flex flex-wrap gap-4 justify-end">
+                    <label class="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded border border-gray-200 cursor-pointer hover:bg-gray-100 transition">
+                        <input type="checkbox" id="tech-mode" class="w-5 h-5 text-nesta-purple border-gray-300 rounded focus:ring-nesta-purple">
+                        <span class="text-sm font-bold text-gray-700">Hard Tech Only</span>
+                    </label>
+                    
+                    <div class="flex bg-gray-100 p-1 rounded">
+                        <button onclick="switchView('list')" id="btn-list" class="px-4 py-2 rounded text-xs font-bold transition shadow-sm bg-white text-nesta-navy">List</button>
+                        <button onclick="switchView('radar')" id="btn-radar" class="px-4 py-2 rounded text-xs font-bold transition text-gray-500 hover:text-nesta-navy">Radar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-gray-100">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">Source Filters</label>
                 <div class="flex flex-wrap gap-2" id="source-bias-container">
-                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="Academia"><span>Academia</span></label>
-                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="VC"><span>VC</span></label>
-                    <label class="flex items-center space-x-2 bg-gray-50 px-3 py-1 rounded border"><input type="checkbox" value="Substack"><span>Substack</span></label>
+                    <label class="bias-chip cursor-pointer select-none">
+                        <input type="checkbox" value="Academia" class="peer sr-only">
+                        <span class="px-3 py-1.5 rounded border border-gray-200 text-xs font-bold text-gray-600 peer-checked:bg-nesta-navy peer-checked:text-white peer-checked:border-nesta-navy transition-all">Academia</span>
+                    </label>
+                    <label class="bias-chip cursor-pointer select-none">
+                        <input type="checkbox" value="VC" class="peer sr-only">
+                        <span class="px-3 py-1.5 rounded border border-gray-200 text-xs font-bold text-gray-600 peer-checked:bg-nesta-navy peer-checked:text-white peer-checked:border-nesta-navy transition-all">VC Blogs</span>
+                    </label>
+                    <label class="bias-chip cursor-pointer select-none">
+                        <input type="checkbox" value="Scientific Magazines" class="peer sr-only">
+                        <span class="px-3 py-1.5 rounded border border-gray-200 text-xs font-bold text-gray-600 peer-checked:bg-nesta-navy peer-checked:text-white peer-checked:border-nesta-navy transition-all">Sci Mags</span>
+                    </label>
+                    <label class="bias-chip cursor-pointer select-none">
+                        <input type="checkbox" value="Niche Forums" class="peer sr-only">
+                        <span class="px-3 py-1.5 rounded border border-gray-200 text-xs font-bold text-gray-600 peer-checked:bg-nesta-navy peer-checked:text-white peer-checked:border-nesta-navy transition-all">Niche Forums</span>
+                    </label>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center pt-4 border-t gap-4">
-                <select id="time-filter" class="bg-gray-50 border-none text-sm font-semibold"><option>Past Month</option><option>Past Year</option></select>
-                <div class="flex gap-3">
-                    <button onclick="generateSignal(true)" class="px-6 py-2 border rounded hover:bg-gray-50 font-bold text-gray-700">Broad Scan</button>
-                    <button id="search-btn" onclick="generateSignal(false)" class="px-8 py-2 bg-black text-white rounded font-bold hover:bg-gray-800 flex items-center gap-2">
-                        <span>Execute</span><div id="btn-loader" class="loader hidden border-white border-t-transparent"></div>
-                    </button>
-                </div>
+            <div class="flex gap-4 pt-4">
+                <select id="time-filter" class="bg-transparent text-sm font-bold text-gray-500 focus:outline-none hover:text-nesta-purple cursor-pointer">
+                    <option>Past Month</option>
+                    <option>Past 3 Months</option>
+                    <option>Past Year</option>
+                </select>
+                <div class="flex-grow"></div>
+                <button onclick="generateSignal(true)" class="px-6 py-3 text-sm font-bold text-gray-500 hover:text-nesta-purple hover:bg-purple-50 rounded transition">
+                    Broad Scan
+                </button>
+                <button id="search-btn" onclick="generateSignal(false)" class="px-8 py-3 bg-nesta-black text-white text-sm font-bold rounded shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition flex items-center gap-3">
+                    <span>Initiate Scan</span>
+                    <div id="btn-loader" class="loader hidden"></div>
+                </button>
             </div>
         </div>
 
-        <div id="view-controls" class="hidden flex justify-end gap-2">
-            <button onclick="switchView('list')" id="btn-list" class="px-3 py-1 bg-black text-white text-xs rounded font-bold">List View</button>
-            <button onclick="switchView('radar')" id="btn-radar" class="px-3 py-1 bg-gray-200 text-gray-600 text-xs rounded font-bold">Radar View</button>
+        <div id="result-container" class="grid grid-cols-1 gap-6 pb-20">
+            <div class="text-center py-20 opacity-40">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                <p class="font-bold text-lg">Ready to scout</p>
+                <p class="text-sm">Configure your filters and hit Scan.</p>
+            </div>
         </div>
 
-        <div id="result-container" class="space-y-6"></div>
-        
-        <div id="radar-container" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-[500px] flex items-center justify-center">
-            <canvas id="signalRadar"></canvas>
+        <div id="radar-container" class="hidden bg-white rounded-2xl p-8 shadow-sm border border-gray-100 min-h-[500px] flex flex-col items-center justify-center">
+            <h3 class="text-xl brand-font mb-6 text-gray-400">Innovation Landscape</h3>
+            <div class="w-full h-[450px] relative">
+                <canvas id="signalRadar"></canvas>
+            </div>
         </div>
 
     </main>
 
-    <div id="saved-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-5xl h-[85vh] rounded-2xl flex flex-col">
-            <div class="p-6 border-b flex justify-between bg-gray-50">
-                <h2 class="font-bold text-xl">Signal Database</h2>
-                <button onclick="document.getElementById('saved-modal').classList.add('hidden')">✕</button>
+    <div id="saved-modal" class="fixed inset-0 bg-nesta-navy/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h2 class="text-2xl brand-font text-nesta-navy">Signal Database</h2>
+                    <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Review & Curate Findings</p>
+                </div>
+                <button onclick="closeSavedSignals()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition">✕</button>
             </div>
-            <div id="saved-list" class="flex-1 overflow-y-auto p-6 bg-gray-100 space-y-4"></div>
+            
+            <div id="saved-list" class="flex-1 overflow-y-auto p-8 bg-[#F9FAFB] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
         </div>
     </div>
 
+    <div id="toast" class="fixed bottom-6 right-6 bg-nesta-navy text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-500 z-[110] font-bold text-sm flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-nesta-green"></div>
+        <span id="toast-msg">Notification</span>
+    </div>
+
     <script>
+        // CONFIG
         const API_BASE_URL = window.location.origin;
         let currentSignals = [];
         let radarChart = null;
+        let isProcessing = false;
 
-        function handleEnter(e) { if(e.key==='Enter') generateSignal(false); }
-        function getCheckedSources() { return Array.from(document.querySelectorAll('#source-bias-container input:checked')).map(c=>c.value); }
+        // UTILS
+        function showToast(msg, type='success') {
+            const el = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            const dot = el.querySelector('div');
+            dot.className = `w-2 h-2 rounded-full ${type === 'error' ? 'bg-red-500' : 'bg-nesta-green'}`;
+            el.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => el.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        function handleEnter(e) { if(e.key === 'Enter') generateSignal(false); }
+
+        function getCheckedSources() {
+            return Array.from(document.querySelectorAll('#source-bias-container input:checked')).map(cb => cb.value);
+        }
 
         function switchView(view) {
             const list = document.getElementById('result-container');
@@ -108,24 +260,233 @@
 
             if(view === 'list') {
                 list.classList.remove('hidden'); radar.classList.add('hidden');
-                btnList.classList.add('bg-black','text-white'); btnList.classList.remove('bg-gray-200','text-gray-600');
-                btnRadar.classList.remove('bg-black','text-white'); btnRadar.classList.add('bg-gray-200','text-gray-600');
+                btnList.className = "px-4 py-2 rounded text-xs font-bold transition shadow-sm bg-white text-nesta-navy";
+                btnRadar.className = "px-4 py-2 rounded text-xs font-bold transition text-gray-500 hover:text-nesta-navy";
             } else {
                 list.classList.add('hidden'); radar.classList.remove('hidden');
-                btnRadar.classList.add('bg-black','text-white'); btnRadar.classList.remove('bg-gray-200','text-gray-600');
-                btnList.classList.remove('bg-black','text-white'); btnList.classList.add('bg-gray-200','text-gray-600');
+                btnRadar.className = "px-4 py-2 rounded text-xs font-bold transition shadow-sm bg-white text-nesta-navy";
+                btnList.className = "px-4 py-2 rounded text-xs font-bold transition text-gray-500 hover:text-nesta-navy";
                 renderRadar();
             }
         }
 
-        function renderRadar() {
-            const ctx = document.getElementById('signalRadar').getContext('2d');
-            if(radarChart) radarChart.destroy();
+        // CORE LOGIC
+        async function generateSignal(isBroad) {
+            if (isProcessing) return;
+            
+            const topic = document.getElementById('topic-input').value;
+            const count = document.getElementById('signal-count').value;
+            const mission = document.getElementById('mission-select').value;
+            const btn = document.getElementById('search-btn');
+            const loader = document.getElementById('btn-loader');
+            const container = document.getElementById('result-container');
 
+            if (!topic && !isBroad) {
+                showToast("Please enter a topic", "error");
+                return;
+            }
+
+            isProcessing = true;
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            
+            // Loading State UI
+            container.innerHTML = `
+                <div class="col-span-full py-20 flex flex-col items-center justify-center space-y-4">
+                    <div class="w-16 h-16 border-4 border-gray-100 border-t-nesta-purple rounded-full animate-spin"></div>
+                    <p class="font-bold text-nesta-navy animate-pulse">Running Deep Search & Verification...</p>
+                    <p class="text-xs text-gray-400">Scraping articles • Checking facts • Assigning scores</p>
+                </div>
+            `;
+            
+            // Switch to list view automatically
+            switchView('list');
+
+            const payload = {
+                message: isBroad 
+                    ? `Find ${count} high-novelty weak signals related to ${mission === 'All Missions' ? 'innovation' : mission}. Context: ${topic}` 
+                    : `Find ${count} signals about ${topic} for ${mission}`,
+                time_filter: document.getElementById('time-filter').value,
+                source_types: getCheckedSources(),
+                tech_mode: document.getElementById('tech-mode').checked
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                container.innerHTML = '';
+
+                if (data.ui_type === 'signal_list') {
+                    currentSignals = data.items;
+                    data.items.forEach((item, index) => {
+                        // Stagger animation
+                        setTimeout(() => {
+                            createSignalCard(item, index);
+                        }, index * 150);
+                    });
+                } else {
+                    container.innerHTML = `<div class="p-8 bg-white rounded-xl border border-gray-200 text-center">${data.content}</div>`;
+                }
+
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = `<div class="p-6 bg-red-50 text-red-600 rounded-lg text-center font-bold">Connection Error. Please try again.</div>`;
+            } finally {
+                isProcessing = false;
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        // RENDER CARD
+        function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
+            const container = document.getElementById(containerId);
+            
+            // Mission Color Logic
+            let mColor = "bg-gray-100 text-gray-600";
+            const m = (signal.mission || "").toLowerCase();
+            if (m.includes("fairer")) mColor = "bg-[#9A1BBE]/10 text-[#9A1BBE]";
+            else if (m.includes("sustainable")) mColor = "bg-[#18A48C]/10 text-[#18A48C]";
+            else if (m.includes("healthy")) mColor = "bg-[#97D9E3]/30 text-[#0F294A]";
+
+            const card = document.createElement('div');
+            card.className = `bg-white rounded-xl p-6 border border-gray-100 card-hover flex flex-col h-full ${!isSavedView ? 'animate-fade-in-up' : ''}`;
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <span class="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest ${mColor}">
+                        ${signal.mission || 'General'}
+                    </span>
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-nesta-black text-white font-bold text-sm shadow-md">
+                        ${signal.score || '-'}
+                    </span>
+                </div>
+
+                <h3 class="text-xl brand-font text-nesta-navy mb-3 leading-tight group-hover:text-nesta-purple transition-colors">
+                    <a href="${signal.final_url || signal.url}" target="_blank" class="hover:underline decoration-2 underline-offset-2">${signal.title}</a>
+                </h3>
+                
+                <p class="text-sm text-gray-600 mb-6 leading-relaxed flex-grow">
+                    ${signal.hook}
+                </p>
+
+                <div class="grid grid-cols-3 gap-2 py-4 border-t border-b border-gray-50 mb-4">
+                     <div class="text-center">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Novelty</div>
+                        <div class="font-bold text-nesta-navy">${signal.score_novelty}/10</div>
+                     </div>
+                     <div class="text-center border-l border-gray-100">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Evidence</div>
+                        <div class="font-bold text-nesta-navy">${signal.score_evidence}/10</div>
+                     </div>
+                     <div class="text-center border-l border-gray-100">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">Impact</div>
+                        <div class="font-bold text-nesta-navy">${signal.score_evocativeness}/10</div>
+                     </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-bold text-gray-400 mt-auto">
+                    <span>${signal.source_date || 'Recent'}</span>
+                    <a href="${signal.final_url || signal.url}" target="_blank" class="flex items-center gap-1 hover:text-nesta-purple transition">
+                        Read Source <span class="text-lg leading-none">→</span>
+                    </a>
+                </div>
+
+                ${isSavedView ? `
+                <div class="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    <select id="saved-shareable-${index}" class="w-full text-xs bg-gray-50 border-gray-200 rounded px-2 py-1.5 font-bold text-gray-700">
+                        <option value="Yes" ${signal.shareable === 'Yes' ? 'selected' : ''}>Yes - Shareable</option>
+                        <option value="Maybe" ${signal.shareable === 'Maybe' ? 'selected' : ''}>Maybe</option>
+                        <option value="No" ${signal.shareable === 'No' ? 'selected' : ''}>No - Reject</option>
+                    </select>
+                    <button onclick="updateSavedSignal('${signal.final_url || signal.url}', '${(signal.title || "").replace(/'/g, "\\'")}', ${signal._row})" class="w-full py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 transition">
+                        Save Changes
+                    </button>
+                </div>
+                ` : ''}
+            `;
+            
+            container.appendChild(card);
+        }
+
+        // DATABASE FUNCTIONS
+        async function openSavedSignals() {
+            const modal = document.getElementById('saved-modal');
+            const list = document.getElementById('saved-list');
+            modal.classList.remove('hidden');
+            list.innerHTML = '<div class="col-span-full py-20 text-center"><div class="loader border-nesta-purple mx-auto mb-4"></div><p class="font-bold text-gray-500">Loading Intelligence Database...</p></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/saved`);
+                const data = await res.json();
+                list.innerHTML = '';
+                currentSaved = data; // Store for export
+
+                if(data.length === 0) {
+                    list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">Database is empty.</div>';
+                    return;
+                }
+
+                data.forEach((sig, i) => {
+                    const normalized = {
+                        title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
+                        mission: sig.Mission, 
+                        score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
+                        shareable: sig.Shareable, _row: sig._row, source_date: sig.Source_Date
+                    };
+                    createSignalCard(normalized, i, true, 'saved-list');
+                });
+            } catch(e) { 
+                list.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Failed to load database. Check connection.</div>'; 
+            }
+        }
+
+        function closeSavedSignals() { document.getElementById('saved-modal').classList.add('hidden'); }
+
+        async function updateSavedSignal(url, title, rowId) {
+            const shareVal = document.getElementById(`saved-shareable-${rowId}`).value;
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/update`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        url, title, 
+                        shareable: shareVal, 
+                        user_status: shareVal === 'No' ? 'Rejected' : 'Accepted' 
+                    })
+                });
+                if(res.ok) showToast('Database updated');
+                else throw new Error();
+            } catch(e) { showToast('Update failed', 'error'); }
+        }
+
+        function downloadCSV() {
+            if(!currentSaved || currentSaved.length === 0) return showToast('No data to export', 'error');
+            let csv = "Title,URL,Score,Mission,Hook,Date\n";
+            currentSaved.forEach(r => {
+                csv += `"${r.Title}","${r.URL}",${r.Score},"${r.Mission}","${(r.Hook||"").replace(/"/g, '""')}",${r.Source_Date}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `Signal_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // CHART RENDER
+        function renderRadar() {
+            if(radarChart) radarChart.destroy();
+            const ctx = document.getElementById('signalRadar').getContext('2d');
+            
+            // Map data to chart format
             const dataPoints = currentSignals.map(s => ({
-                x: s.score_novelty || Math.random()*10,
-                y: s.score_evidence || Math.random()*10,
-                r: 10, // Bubble radius
+                x: s.score_novelty || Math.random() * 10,
+                y: s.score_evidence || Math.random() * 10,
+                r: (s.score / 10) || 5, // Bubble size based on total score
                 title: s.title
             }));
 
@@ -133,119 +494,47 @@
                 type: 'bubble',
                 data: {
                     datasets: [{
-                        label: 'Signals Landscape',
+                        label: 'Active Signals',
                         data: dataPoints,
-                        backgroundColor: 'rgba(154, 27, 190, 0.6)',
+                        backgroundColor: 'rgba(154, 27, 190, 0.6)', // Nesta Purple
                         borderColor: '#9A1BBE',
+                        borderWidth: 1,
+                        hoverBackgroundColor: '#0F294A',
+                        hoverBorderColor: '#0F294A'
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
-                        x: { title: { display: true, text: 'Novelty (0-10)' }, min: 0, max: 10 },
-                        y: { title: { display: true, text: 'Evidence (0-10)' }, min: 0, max: 10 }
+                        x: { 
+                            title: { display: true, text: 'NOVELTY (Distance from Mainstream)', font: { weight: 'bold', family: 'Averta' } }, 
+                            min: 0, max: 10, grid: { color: '#F1F5F9' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'EVIDENCE (Reality Factor)', font: { weight: 'bold', family: 'Averta' } }, 
+                            min: 0, max: 10, grid: { color: '#F1F5F9' }
+                        }
                     },
                     plugins: {
                         tooltip: {
+                            backgroundColor: '#0F294A',
+                            titleFont: { family: 'Zosia Display', size: 14 },
+                            bodyFont: { family: 'Averta' },
+                            padding: 12,
                             callbacks: {
-                                label: function(ctx) {
-                                    return ctx.raw.title;
+                                label: function(context) {
+                                    return context.raw.title;
                                 }
                             }
-                        }
+                        },
+                        legend: { display: false }
                     }
                 }
             });
         }
-
-        async function generateSignal(isBroad) {
-            const topic = document.getElementById('topic-input').value;
-            const loader = document.getElementById('btn-loader');
-            const btn = document.getElementById('search-btn');
-            const count = document.getElementById('signal-count').value;
-            const mission = document.getElementById('mission-select').value;
-            
-            if(!topic && !isBroad) return alert("Please enter a topic");
-            
-            btn.disabled = true; loader.classList.remove('hidden');
-            document.getElementById('result-container').innerHTML = '<div class="text-center py-10 animate-pulse text-gray-500">Scanning & Verifying (Deep Read Enabled)...</div>';
-            document.getElementById('view-controls').classList.add('hidden');
-
-            let prompt = isBroad ? 
-                `Find ${count} high-novelty signals about ${mission}. Context: ${topic}` : 
-                `Find ${count} signals about ${topic} for ${mission}`;
-
-            try {
-                const res = await fetch(API_BASE_URL + '/api/chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        message: prompt,
-                        time_filter: document.getElementById('time-filter').value,
-                        source_types: getCheckedSources(),
-                        tech_mode: document.getElementById('tech-mode').checked
-                    })
-                });
-                const data = await res.json();
-                
-                if(data.ui_type === 'signal_list') {
-                    currentSignals = data.items;
-                    document.getElementById('result-container').innerHTML = '';
-                    currentSignals.forEach(s => createCard(s));
-                    document.getElementById('view-controls').classList.remove('hidden');
-                } else {
-                    document.getElementById('result-container').innerHTML = `<div class="p-4 bg-gray-100">${data.content}</div>`;
-                }
-            } catch(e) { console.error(e); alert("Scan failed."); }
-            finally { btn.disabled = false; loader.classList.add('hidden'); }
-        }
-
-        function createCard(s, containerId='result-container') {
-            const div = document.createElement('div');
-            div.className = "bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition";
-            div.innerHTML = `
-                <div class="flex justify-between mb-2">
-                    <span class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-1 rounded">${s.mission}</span>
-                    <span class="text-sm font-bold bg-black text-white px-2 rounded-full flex items-center">${s.score||0}</span>
-                </div>
-                <h3 class="text-lg font-bold mb-2"><a href="${s.url}" target="_blank" class="hover:underline">${s.title}</a></h3>
-                <p class="text-sm text-gray-600 mb-4">${s.hook}</p>
-                <div class="flex gap-4 text-xs font-bold text-gray-400">
-                    <span>NOVELTY: <span class="text-black">${s.score_novelty}</span></span>
-                    <span>EVIDENCE: <span class="text-black">${s.score_evidence}</span></span>
-                </div>
-            `;
-            document.getElementById(containerId).appendChild(div);
-        }
-
-        async function openSavedSignals() {
-            document.getElementById('saved-modal').classList.remove('hidden');
-            const res = await fetch(API_BASE_URL + '/api/saved');
-            const data = await res.json();
-            const list = document.getElementById('saved-list');
-            list.innerHTML = '';
-            currentSaved = data; // Store for CSV export if needed
-            data.forEach(s => {
-                // Adapt saved format to card format
-                createCard({
-                    title: s.Title, url: s.URL, hook: s.Hook, mission: s.Mission,
-                    score: s.Score, score_novelty: s.Score_Novelty, score_evidence: s.Score_Evidence
-                }, 'saved-list');
-            });
-        }
-
-        function downloadCSV() {
-            if(!currentSaved) return alert("Open Database first to load data");
-            let csv = "Title,URL,Hook,Score,Mission\n";
-            currentSaved.forEach(r => {
-                csv += `"${r.Title}","${r.URL}","${r.Hook.replace(/"/g, '""')}",${r.Score},"${r.Mission}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'signals_export.csv';
-            a.click();
-        }
         
-        let currentSaved = null;
+        let currentSaved = [];
     </script>
 </body>
 </html>
