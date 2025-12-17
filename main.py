@@ -8,12 +8,13 @@ from urllib.parse import urlparse
 from typing import Optional, List, Dict, Any, Set
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse # ✅ ADDED for UI
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
-from bs4 import BeautifulSoup  # ✅ NEW: For Deep Reading
+from bs4 import BeautifulSoup
 from keywords import MISSION_KEYWORDS, CROSS_CUTTING_KEYWORDS
 
 # --- SETUP ---
@@ -67,7 +68,7 @@ def ensure_sheet_headers(sheet):
     expected_headers = [
         "Title", "Score", "Hook", "URL", "Mission", "Lenses",
         "Score_Evocativeness", "Score_Novelty", "Score_Evidence",
-        "User_Rating", "User_Status", "User_Comment", "Shareable", "Feedback"
+        "User_Rating", "User_Status", "User_Comment", "Shareable", "Feedback", "Source_Date"
     ]
     try:
         existing_headers = sheet.row_values(1)
@@ -76,7 +77,6 @@ def ensure_sheet_headers(sheet):
     except Exception as e:
         print(f"⚠️ Header Check Failed: {e}")
 
-# --- ✅ NEW: DEEP READING CAPABILITY ---
 async def fetch_article_text(url: str) -> str:
     """Scrapes the URL to get the actual content for better hooks/validation."""
     try:
@@ -87,25 +87,16 @@ async def fetch_article_text(url: str) -> str:
                 return f"Error: Could not read page (Status {resp.status_code})"
             
             soup = BeautifulSoup(resp.text, 'html.parser')
-            # Remove scripts and styles
             for script in soup(["script", "style", "nav", "footer", "header"]):
                 script.decompose()
             
             text = soup.get_text()
-            # Clean whitespace
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = '\n'.join(chunk for chunk in chunks if chunk)
-            
-            # Limit to first 2500 chars to save tokens but get the gist
             return text[:2500] + "..."
     except Exception as e:
         return f"Error reading article: {str(e)}"
-
-# --- EXISTING HELPERS (Preserved) ---
-# (Skipping full repetition of keyword/sheet helpers for brevity, assume they exist as per previous file)
-# ... [Insert detect_missions_from_text, sample_keywords, get_mission_keywords, get_sheet_records, upsert_signal here] ...
-# For the sake of the complete file, I will include the critical ones needed for the endpoint:
 
 def get_sheet_records(include_rejected: bool = False) -> List[Dict[str, Any]]:
     sheet = get_google_sheet()
@@ -118,7 +109,10 @@ def get_sheet_records(include_rejected: bool = False) -> List[Dict[str, Any]]:
         records = []
         for idx, row in enumerate(rows[1:], start=2):
             if all(cell == "" for cell in row): continue
-            record = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+            # Pad row if missing columns
+            while len(row) < len(headers): row.append("")
+            
+            record = {headers[i]: row[i] for i in range(len(headers))}
             record["_row"] = idx
             status = str(record.get("User_Status", "")).lower()
             if not include_rejected and status == "rejected": continue
@@ -132,27 +126,40 @@ def upsert_signal(signal: Dict[str, Any]) -> None:
     sheet = get_google_sheet()
     if not sheet: return
     ensure_sheet_headers(sheet)
-    payload = [
-        signal.get("title", ""), signal.get("score", 0),
-        signal.get("hook", ""), signal.get("url", ""), signal.get("mission", ""),
-        signal.get("lenses", ""), signal.get("score_evocativeness", 0),
-        signal.get("score_novelty", 0), signal.get("score_evidence", 0),
-        signal.get("user_rating", 3), signal.get("user_status", "Pending"),
-        signal.get("user_comment", ""), signal.get("shareable", "Maybe"),
-        signal.get("feedback", "")
+    
+    # Sanitize dictionary keys to match sheet headers (lowercase -> match)
+    row_data = [
+        signal.get("title", ""), 
+        signal.get("score", 0),
+        signal.get("hook", ""), 
+        signal.get("url", ""), 
+        signal.get("mission", ""),
+        signal.get("lenses", ""), 
+        signal.get("score_evocativeness", 0),
+        signal.get("score_novelty", 0), 
+        signal.get("score_evidence", 0),
+        signal.get("user_rating", 3), 
+        signal.get("user_status", "Pending"),
+        signal.get("user_comment", "") or signal.get("feedback", ""), 
+        signal.get("shareable", "Maybe"),
+        signal.get("feedback", ""),
+        signal.get("source_date", "Recent")
     ]
+
     try:
         records = get_sheet_records(include_rejected=True)
         match_row = None
         incoming_url = str(signal.get("url", "")).strip().lower()
+        
         for rec in records:
             if str(rec.get("URL", "")).strip().lower() == incoming_url:
                 match_row = rec.get("_row")
                 break
+        
         if match_row:
-            sheet.update(f"A{match_row}:N{match_row}", [payload])
+            sheet.update(f"A{match_row}:O{match_row}", [row_data])
         else:
-            sheet.append_row(payload)
+            sheet.append_row(row_data)
     except Exception as e:
         print(f"Upsert Error: {e}")
 
@@ -193,7 +200,6 @@ async def chat_endpoint(req: ChatRequest):
     try:
         print(f"Incoming: {req.message}")
         
-        # PROMPT CONSTRUCTION (Advanced)
         prompt = req.message
         prompt += "\n\nROLE: You are Nesta's Discovery Hub Lead Foresight Researcher."
         prompt += "\n\nPROTOCOL: 1. SEARCH high-friction queries. 2. SELECT best candidates. 3. READ candidates (using 'fetch_article_text') to verify they are real/relevant. 4. DISPLAY cards only for verified signals."
@@ -202,7 +208,6 @@ async def chat_endpoint(req: ChatRequest):
         if req.tech_mode: prompt += "\nCONSTRAINT: Hard Tech / Emerging Tech ONLY."
         prompt += f"\nCONSTRAINT: Time Horizon {req.time_filter}. Bias Source Types: {', '.join(req.source_types)}."
         
-        # RUN ASSISTANT
         run = await asyncio.to_thread(
             client.beta.threads.create_and_run,
             assistant_id=ASSISTANT_ID,
@@ -222,24 +227,22 @@ async def chat_endpoint(req: ChatRequest):
                 for tool in tool_calls:
                     if tool.function.name == "perform_web_search":
                         args = json.loads(tool.function.arguments)
-                        # Map Frontend time filter to API code
                         d_map = {"Past Month": "m1", "Past 3 Months": "m3", "Past 6 Months": "m6", "Past Year": "y1"}
                         res = await perform_google_search(args.get("query"), d_map.get(req.time_filter, "m1"))
                         tool_outputs.append({"tool_call_id": tool.id, "output": res})
                     
                     elif tool.function.name == "fetch_article_text":
-                        # ✅ NEW TOOL HANDLER
                         args = json.loads(tool.function.arguments)
                         content = await fetch_article_text(args.get("url"))
                         tool_outputs.append({"tool_call_id": tool.id, "output": content})
                     
                     elif tool.function.name == "display_signal_card":
                         args = json.loads(tool.function.arguments)
-                        # Normalize and add standard metadata
                         card = {
                             "title": args.get("title"), "url": args.get("final_url") or args.get("url"),
                             "hook": args.get("hook"), "score": args.get("score"),
                             "mission": args.get("mission", "General"),
+                            "lenses": args.get("lenses", ""),
                             "score_novelty": args.get("score_novelty", 0),
                             "score_evidence": args.get("score_evidence", 0),
                             "score_evocativeness": args.get("score_evocativeness", 0),
@@ -250,7 +253,6 @@ async def chat_endpoint(req: ChatRequest):
                         if card["url"] and card["url"] not in seen_urls:
                             accumulated_signals.append(card)
                             seen_urls.add(card["url"])
-                            # Autosave
                             try: upsert_signal(card)
                             except: pass
                             tool_outputs.append({"tool_call_id": tool.id, "output": "displayed"})
@@ -263,7 +265,6 @@ async def chat_endpoint(req: ChatRequest):
                 if accumulated_signals:
                     return {"ui_type": "signal_list", "items": accumulated_signals}
                 else:
-                    # Fallback to text if no signals found
                     msgs = await asyncio.to_thread(client.beta.threads.messages.list, thread_id=run.thread_id)
                     return {"ui_type": "text", "content": msgs.data[0].content[0].text.value}
             
@@ -282,9 +283,16 @@ def get_saved(): return get_sheet_records()
 @app.post("/api/update")
 def update_sig(req: Dict[str, Any]): 
     try:
-        # Pass the raw dictionary to upsert_signal
         upsert_signal(req)
         return {"status": "updated"}
     except Exception as e:
         print(f"Update Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- ✅ CRITICAL FIX: SERVE THE FRONTEND ---
+@app.get("/")
+def serve_home():
+    """Serves the index.html file so the UI loads correctly."""
+    with open("index.html", "r") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content, status_code=200)
