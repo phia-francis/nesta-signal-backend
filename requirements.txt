@@ -5,3 +5,4 @@ google-auth
 openai
 python-dotenv
 httpx
+beautifulsoup4
