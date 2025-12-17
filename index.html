@@ -356,7 +356,8 @@
             if (!text) return "";
             // Remove "In 2024," or "In 2025 " at the start
             let clean = text.replace(/^In \d{4},?\s*/i, "");
-            // Remove citations like [cite: 12]
+            // Remove citations like
+            // We use a regex that looks for
             clean = clean.replace(/\/g, "");
             return clean;
         }
