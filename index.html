@@ -14,27 +14,26 @@
                 extend: {
                     colors: {
                         nesta: {
-                            [cite_start]blue: '#0000FF',       // Hero (All Missions) [cite: 141-145]
-                            [cite_start]navy: '#0F294A',       // Structure/Header/Footer [cite: 167-171]
-                            
-                            // Support Colours (Mission Specific)
-                            [cite_start]pink: '#F6A4B7',       // AHL Support [cite: 157-158]
-                            [cite_start]yellow: '#FDB633',     // AFS Support [cite: 161-162]
-                            [cite_start]green: '#18A48C',      // ASF Support [cite: 146-148]
-                            
-                            // Neutrals/Accents
-                            red: '#EB003B',        
-                            aqua: '#97D9E3',       
-                            [cite_start]darkgrey: '#646363',   // Text [cite: 163-165]
-                            [cite_start]sand: '#D2C9C0',       // Backgrounds [cite: 164-166]
-                            lightsand: '#E5E0D8',  // Custom tint for body bg
-                            [cite_start]black: '#000000',      // [cite: 174-177]
-                            [cite_start]white: '#FFFFFF'       // [cite: 172-173]
+                            blue: '#0000FF',
+                            green: '#18A48C',
+                            aqua: '#97D9E3',
+                            purple: '#9A1BBE',
+                            violet: '#A59BEE',
+                            red: '#EB003B',
+                            pink: '#F6A4B7',
+                            orange: '#FF6E47',
+                            yellow: '#FDB633',
+                            navy: '#0F294A',
+                            darkgrey: '#646363',
+                            sand: '#D2C9C0',
+                            lightsand: '#E5E0D8',
+                            black: '#000000',
+                            white: '#FFFFFF'
                         }
                     },
                     fontFamily: {
-                        [cite_start]display: ['"Zosia Display"', 'sans-serif'], // [cite: 230-232]
-                        [cite_start]body: ['"Averta"', 'sans-serif']           // [cite: 250-251]
+                        display: ['"Zosia Display"', 'sans-serif'],
+                        body: ['"Averta"', 'sans-serif']
                     },
                     animation: {
                         'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -212,7 +211,7 @@
 
     </main>
 
-    <footer class="bg-nesta-navy text-white mt-auto">
+    <footer class="bg-nesta-navy text-white mt-auto border-t border-nesta-aqua/20">
         <div class="h-1 w-full bg-gradient-to-r from-nesta-blue via-nesta-green to-nesta-purple"></div>
         <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -246,13 +245,14 @@
     </div>
 
     <script>
-        // --- API CONFIGURATION ---
-        // Automatically detect if running locally or on Render/GitHub Pages
-        const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://127.0.0.1:8000' 
-            : window.location.origin;
+        // CONFIG & STATE
+        // ✅ FIX: Force API URL to Render if on GitHub Pages
+        const API_BASE_URL = window.location.hostname.includes('github.io')
+            ? 'https://nesta-signal-scout.onrender.com'
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://127.0.0.1:8000' 
+                : window.location.origin);
 
-        // STATE
         let currentSignals = [];
         let radarChart = null;
         let isProcessing = false;
@@ -311,6 +311,7 @@
             const grid = document.getElementById('preview-grid');
             try {
                 const res = await fetch(`${API_BASE_URL}/api/saved`);
+                if(!res.ok) throw new Error("API Error");
                 const data = await res.json();
                 if(!data || data.length === 0) { grid.innerHTML = '<div class="col-span-3 text-center py-10 text-nesta-darkgrey">No signals in database yet.</div>'; return; }
                 const recent = data.slice(0, 3);
@@ -324,7 +325,7 @@
                     };
                     createSignalCard(normalized, i, false, 'preview-grid');
                 });
-            } catch(e) { console.error(e); grid.innerHTML = '<div class="col-span-3 text-center text-xs text-nesta-red">Unable to load preview.</div>'; }
+            } catch(e) { console.error(e); grid.innerHTML = '<div class="col-span-3 text-center text-xs text-nesta-red">Unable to connect to database.</div>'; }
         }
 
         function showToast(msg, type='success') {
@@ -357,7 +358,6 @@
             }
         }
 
-        // CORE LOGIC
         async function generateSignal(isBroad) {
             if (isProcessing) return;
             const topic = document.getElementById('topic-input').value;
@@ -412,38 +412,32 @@
             }
         }
 
-        // RENDER CARD
         function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
             const container = document.getElementById(containerId);
             
-            [cite_start]// Mission Colour Pairing Logic [cite: 190-193]
             let barColor = "bg-nesta-darkgrey"; 
             let badgeColor = "bg-gray-100 text-nesta-darkgrey";
             const m = (signal.mission || "").toLowerCase();
             
+            // MISSION COLOUR LOGIC (Pairings)
             if (m.includes("fairer")) { 
-                [cite_start]// A Fairer Start: Yellow Support (Hero Blue) [cite: 161-162]
                 barColor = "bg-nesta-yellow"; 
                 badgeColor = "bg-nesta-yellow text-nesta-navy"; 
             }
             else if (m.includes("sustainable")) { 
-                [cite_start]// A Sustainable Future: Green Support (Hero Blue) [cite: 146-148]
                 barColor = "bg-nesta-green"; 
                 badgeColor = "bg-nesta-green text-white"; 
             }
             else if (m.includes("healthy")) { 
-                [cite_start]// A Healthy Life: Pink Support (Hero Blue) [cite: 157-158]
                 barColor = "bg-nesta-pink"; 
                 badgeColor = "bg-nesta-pink text-nesta-navy"; 
             }
 
-            // Metadata Processing
             const missionEmoji = getMissionEmoji(signal.mission || '');
             const sourceName = formatSource(signal.final_url || signal.url);
             const lensTags = getLensBadges(signal.lenses || '');
 
             const card = document.createElement('div');
-            // Card is White for Accessibility (Body copy on White)
             card.className = `bg-white p-6 border-l border-r border-b border-nesta-sand border-t-8 ${barColor} card-hover flex flex-col h-full shadow-sm animate-fade-in-up rounded-xl`;
             card.style.borderTopColor = barColor.replace('bg-', 'var(--color-nesta-');
 
@@ -457,9 +451,7 @@
                 <h3 class="text-2xl brand-font text-nesta-navy mb-3 leading-tight hover:text-nesta-blue transition-colors">
                     <a href="${signal.final_url || signal.url}" target="_blank" class="hover:underline decoration-2 underline-offset-2">${signal.title}</a>
                 </h3>
-                
                 ${lensTags}
-
                 <p class="text-sm text-nesta-darkgrey mb-6 leading-relaxed flex-grow font-body">${signal.hook}</p>
                 <div class="grid grid-cols-3 gap-2 py-4 border-t border-b border-nesta-sand/30 mb-4">
                      <div class="text-center"><div class="text-[9px] text-nesta-darkgrey uppercase font-bold mb-1">Novelty</div><div class="font-bold text-nesta-navy text-lg">${signal.score_novelty}/10</div></div>
