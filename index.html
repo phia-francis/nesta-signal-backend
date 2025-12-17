@@ -271,7 +271,7 @@
         }
 
         // CORE LOGIC
-        async function generateSignal(isBroad) {
+         function generateSignal(isBroad) {
             if (isProcessing) return;
             
             const topic = document.getElementById('topic-input').value;
@@ -449,20 +449,46 @@
         function closeSavedSignals() { document.getElementById('saved-modal').classList.add('hidden'); }
 
         async function updateSavedSignal(url, title, rowId) {
+            // 1. Capture values from the DOM
             const shareVal = document.getElementById(`saved-shareable-${rowId}`).value;
+            // Use optional chaining (?.) to get the comment safely, default to empty string
+            const commentVal = document.getElementById(`saved-comment-${rowId}`)?.value || '';
+            
+            // UI Feedback: Change button text temporarily (Optional, requires passing button event)
+            // const btn = event.target; 
+            // const originalText = btn.innerText;
+            // btn.innerText = "Saving...";
+        
             try {
                 const res = await fetch(`${API_BASE_URL}/api/update`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
-                        url, title, 
+                        url: url, 
+                        title: title, 
                         shareable: shareVal, 
-                        user_status: shareVal === 'No' ? 'Rejected' : 'Accepted' 
+                        // Map "No" to Rejected, everything else to Accepted/Pending
+                        user_status: shareVal === 'No' ? 'Rejected' : 'Accepted',
+                        // Critical: Send the feedback/comment so it saves to Sheets
+                        user_comment: commentVal,
+                        feedback: commentVal,
+                        user_rating: 3 // Default rating
                     })
                 });
-                if(res.ok) showToast('Database updated');
-                else throw new Error();
-            } catch(e) { showToast('Update failed', 'error'); }
+        
+                if(res.ok) {
+                    showToast('Database updated successfully');
+                } else {
+                    // Read the actual error message from the server
+                    const errorText = await res.text();
+                    console.error("Server Error:", errorText);
+                    throw new Error(`Server responded with ${res.status}`);
+                }
+            } catch(e) { 
+                console.error(e);
+                showToast('Update failed', 'error'); 
+            } 
+            // finally { btn.innerText = originalText; } // Uncomment if using button feedback
         }
 
         function downloadCSV() {
