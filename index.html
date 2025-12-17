@@ -338,7 +338,29 @@
         const MISSION_EMOJIS = { 'A Fairer Start': '📚', 'A Healthy Life': '❤️‍🩹', 'A Sustainable Future': '🌳' };
         const LENS_EMOJIS = { 'Social': '👥', 'Tech': '🤖', 'Media': '🎙️', 'Powerhouse': '⚡' };
 
-        function initDashboard() { loadPreview(); }
+        async function warmBackend() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            try {
+                const res = await fetch(`${API_BASE_URL}/`, { method: 'GET', cache: 'no-store', signal: controller.signal });
+                return res.ok;
+            } catch (err) {
+                console.error('Backend warmup failed', err);
+                return false;
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        async function initDashboard() {
+            const ready = await warmBackend();
+            if (!ready) {
+                showToast('Backend offline. Retrying...', 'error');
+                setTimeout(loadPreview, 1500);
+                return;
+            }
+            loadPreview();
+        }
 
         function getMissionEmoji(mission) {
             for (const [key, emoji] of Object.entries(MISSION_EMOJIS)) { if (mission.includes(key)) return emoji; }
@@ -493,9 +515,16 @@
             const signal = scanController.signal;
 
             try {
+                const backendReady = await warmBackend();
+                if (!backendReady) {
+                    container.innerHTML = `<div class="p-8 bg-white border-l-4 border-nesta-red shadow-sm text-center"><p class="font-bold text-nesta-red">Backend Offline</p><p class="text-sm text-gray-500">Could not reach the scanning service. Trying again in a moment...</p></div>`;
+                    showToast('Could not reach backend. Please retry.', 'error');
+                    return;
+                }
+
                 const res = await fetch(`${API_BASE_URL}/api/chat`, {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload),
                     signal: signal // Attach signal
                 });
@@ -593,7 +622,7 @@
                 ${isSavedView ? `
                 <div class="mt-5 pt-5 border-t border-gray-100 space-y-4">
                     <div class="space-y-1">
-                        <label class="text-[10px] uppercase font-bold text-gray-400">Status</label>
+                        <label for="saved-shareable-${index}" class="text-[10px] uppercase font-bold text-gray-400">Status</label>
                         <select id="saved-shareable-${index}" class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-3 py-2 font-bold text-nesta-navy focus:border-nesta-blue focus:ring-0">
                             <option value="Yes" ${signal.shareable === 'Yes' ? 'selected' : ''}>Yes - Shareable</option>
                             <option value="Maybe" ${signal.shareable === 'Maybe' ? 'selected' : ''}>Maybe</option>
@@ -601,7 +630,7 @@
                         </select>
                     </div>
                     <div class="space-y-1">
-                         <label class="text-[10px] uppercase font-bold text-gray-400">Notes</label>
+                         <label for="saved-comment-${index}" class="text-[10px] uppercase font-bold text-gray-400">Notes</label>
                          <input type="text" id="saved-comment-${index}" class="w-full text-xs bg-gray-50 border border-gray-200 px-3 py-2 text-nesta-navy focus:border-nesta-blue focus:ring-0 rounded" placeholder="Add comment..." value="${signal.feedback || ''}">
                     </div>
                     <button onclick="updateSavedSignal('${signal.final_url || signal.url}', '${(signal.title || "").replace(/'/g, "\\'")}', ${index})" class="w-full py-2.5 bg-nesta-navy text-white text-xs font-bold uppercase rounded hover:bg-nesta-blue transition shadow-md">Save Changes</button>
