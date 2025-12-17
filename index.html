@@ -14,22 +14,17 @@
                 extend: {
                     colors: {
                         nesta: {
-                            blue: '#0000FF',       // Hero / Primary Action
-                            navy: '#0F294A',       // Structure / Text
-                            
-                            // RESERVED MISSION COLOURS (Signal Cards Only)
-                            pink: '#F6A4B7',       // A Healthy Life
-                            yellow: '#FDB633',     // A Fairer Start
-                            green: '#18A48C',      // A Sustainable Future
-                            
-                            // GENERIC UI ACCENTS
-                            aqua: '#97D9E3',       // Focus / Active States
-                            purple: '#9A1BBE',     // Filters / Secondary
-                            orange: '#FF6E47',     // Alerts / Toggles
-                            red: '#EB003B',        // Errors
-                            sand: '#D2C9C0',       // Borders
-                            darkgrey: '#646363',   // Subtext
-                            
+                            blue: '#0000FF',       
+                            navy: '#0F294A',       
+                            pink: '#F6A4B7',       
+                            yellow: '#FDB633',     
+                            green: '#18A48C',      
+                            aqua: '#97D9E3',       
+                            purple: '#9A1BBE',     
+                            orange: '#FF6E47',     
+                            red: '#EB003B',        
+                            sand: '#D2C9C0',       
+                            darkgrey: '#646363',   
                             black: '#000000',      
                             white: '#FFFFFF'       
                         }
@@ -82,6 +77,13 @@
         .card-hover { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 30px -8px rgba(0, 0, 255, 0.12); }
         
+        /* HIGHLIGHT FOR RADAR CLICK */
+        .card-highlight {
+            border-color: #0000FF !important;
+            box-shadow: 0 0 0 4px rgba(0, 0, 255, 0.2) !important;
+            transform: scale(1.02);
+        }
+        
         /* CUSTOM RANGE SLIDER */
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
@@ -104,7 +106,6 @@
         /* --- BUTTON ANIMATIONS & INTERACTIVITY --- */
         
         /* Filter Chips (Purple) */
-        /* Fixed Selector: Targets LABEL not SPAN */
         .bias-chip label {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
@@ -112,11 +113,9 @@
         .bias-chip label:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(15, 41, 74, 0.1);
-            border-color: #9A1BBE; /* Purple Hover Border */
+            border-color: #9A1BBE;
         }
-        .bias-chip label:active {
-            transform: scale(0.95); /* Tactile Press */
-        }
+        .bias-chip label:active { transform: scale(0.95); }
         .bias-chip input:checked + label {
             background-color: #9A1BBE; 
             color: #FFFFFF; 
@@ -126,34 +125,22 @@
         }
 
         /* Hard Tech Toggle (Orange) */
-        .tech-toggle-label {
-            transition: all 0.2s ease;
-        }
-        .tech-toggle-group:hover .tech-toggle-label {
-            color: #FF6E47; /* Orange Text on Hover */
-        }
-        .tech-toggle-group:active {
-            transform: scale(0.98);
-        }
+        .tech-toggle-label { transition: all 0.2s ease; }
+        .tech-toggle-group:hover .tech-toggle-label { color: #FF6E47; }
+        .tech-toggle-group:active { transform: scale(0.98); }
 
         /* CTA Buttons */
-        .btn-interactive {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-interactive:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        .btn-interactive:active {
-            transform: translateY(0);
-            transform: scale(0.97);
-        }
+        .btn-interactive { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-interactive:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .btn-interactive:active { transform: translateY(0); transform: scale(0.97); }
 
         @keyframes pulse-purple {
             0% { box-shadow: 0 0 0 0 rgba(154, 27, 190, 0.4); }
             70% { box-shadow: 0 0 0 6px rgba(154, 27, 190, 0); }
             100% { box-shadow: 0 0 0 0 rgba(154, 27, 190, 0); }
         }
+        
+        html { scroll-behavior: smooth; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased bg-gray-50" onload="initDashboard()">
@@ -252,10 +239,16 @@
                         <option class="text-nesta-navy">Past Year</option>
                     </select>
                     <div class="h-6 w-px bg-gray-300"></div>
-                    <button onclick="generateSignal(true)" class="btn-interactive px-6 py-3 text-sm font-bold text-nesta-darkgrey hover:text-nesta-blue hover:bg-gray-50 rounded border border-transparent hover:border-nesta-blue/20">Broad Scan</button>
+                    
+                    <button onclick="generateSignal(true)" id="broad-btn" class="btn-interactive px-6 py-3 text-sm font-bold text-nesta-darkgrey hover:text-nesta-blue hover:bg-gray-50 rounded border border-transparent hover:border-nesta-blue/20">Broad Scan</button>
+                    
                     <button id="search-btn" onclick="generateSignal(false)" class="btn-interactive px-8 py-3 bg-nesta-blue text-white text-sm font-bold rounded shadow-lg hover:bg-blue-700 hover:shadow-xl flex items-center gap-3">
                         <span>Initiate Scan</span>
-                        <div id="btn-loader" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </button>
+                    
+                    <button id="stop-btn" onclick="stopScan()" class="hidden btn-interactive px-8 py-3 bg-nesta-red text-white text-sm font-bold rounded shadow-lg hover:bg-red-700 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        Stop
                     </button>
                 </div>
             </div>
@@ -265,6 +258,7 @@
         
         <div id="radar-container" class="hidden bg-white p-10 shadow-soft border border-gray-100 min-h-[600px] flex flex-col items-center justify-center rounded-xl">
             <h3 class="text-2xl brand-font mb-8 text-nesta-navy">Innovation Landscape</h3>
+            <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Click dots to view signal</p>
             <div class="w-full h-[500px] relative"><canvas id="signalRadar"></canvas></div>
         </div>
 
@@ -330,6 +324,7 @@
         let currentSignals = [];
         let radarChart = null;
         let isProcessing = false;
+        let scanController = null; // For cancelling requests
 
         const MISSION_EMOJIS = { 'A Fairer Start': '📚', 'A Healthy Life': '❤️‍🩹', 'A Sustainable Future': '🌳' };
         const LENS_EMOJIS = { 'Social': '👥', 'Tech': '🤖', 'Media': '🎙️', 'Powerhouse': '⚡' };
@@ -347,6 +342,15 @@
                 const name = hostname.split('.')[0];
                 return name.length <= 3 ? name.toUpperCase() : name.charAt(0).toUpperCase() + name.slice(1);
             } catch { return 'Source'; }
+        }
+
+        function cleanText(text) {
+            if (!text) return "";
+            // Remove "In 2024," or "In 2025 " at the start
+            let clean = text.replace(/^In \d{4},?\s*/i, "");
+            // Remove tags
+            clean = clean.replace(/\/g, "");
+            return clean;
         }
 
         function getLensBadges(lensesStr) {
@@ -417,6 +421,33 @@
             }
         }
 
+        function setScanningState(isScanning) {
+            const startBtn = document.getElementById('search-btn');
+            const broadBtn = document.getElementById('broad-btn');
+            const stopBtn = document.getElementById('stop-btn');
+
+            if (isScanning) {
+                // HIDE Start buttons, SHOW Stop button
+                startBtn.classList.add('hidden');
+                broadBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                // SHOW Start buttons, HIDE Stop button
+                startBtn.classList.remove('hidden');
+                broadBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        function stopScan() {
+            if (scanController) {
+                scanController.abort();
+                scanController = null;
+                showToast('Scan Cancelled', 'error');
+                // The finally block in generateSignal will handle UI reset via setScanningState(false)
+            }
+        }
+
         async function generateSignal(isBroad) {
             if (isProcessing) return;
             const topic = document.getElementById('topic-input').value;
@@ -424,9 +455,9 @@
             
             if (!topic && !isBroad) return showToast("Please enter a topic", "error");
 
+            // UI UPDATES START
             isProcessing = true;
-            document.getElementById('search-btn').disabled = true;
-            document.getElementById('btn-loader').classList.remove('hidden');
+            setScanningState(true); // Toggle buttons
             
             container.innerHTML = `
                 <div class="col-span-full py-24 flex flex-col items-center justify-center space-y-6 animate-fade-in-up">
@@ -448,10 +479,18 @@
                 tech_mode: document.getElementById('tech-mode').checked
             };
 
+            // INIT CONTROLLER
+            scanController = new AbortController();
+            const signal = scanController.signal;
+
             try {
                 const res = await fetch(`${API_BASE_URL}/api/chat`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload),
+                    signal: signal // Attach signal
                 });
+                
                 if(!res.ok) throw new Error();
                 const data = await res.json();
                 container.innerHTML = '';
@@ -466,18 +505,22 @@
                     container.innerHTML = `<div class="p-10 bg-white border border-gray-100 rounded-xl text-center text-nesta-navy shadow-sm">${data.content}</div>`;
                 }
             } catch (error) {
-                container.innerHTML = `<div class="p-8 bg-white border-l-4 border-nesta-red shadow-sm text-center"><p class="font-bold text-nesta-red">Connection Failed</p><p class="text-sm text-gray-500">Please check your internet or try again later.</p></div>`;
+                if (error.name === 'AbortError') {
+                    container.innerHTML = `<div class="p-10 text-center text-gray-400">Scan cancelled.</div>`;
+                } else {
+                    container.innerHTML = `<div class="p-8 bg-white border-l-4 border-nesta-red shadow-sm text-center"><p class="font-bold text-nesta-red">Connection Failed</p><p class="text-sm text-gray-500">Please check your internet or try again later.</p></div>`;
+                }
             } finally {
+                // UI UPDATES END
                 isProcessing = false;
-                document.getElementById('search-btn').disabled = false;
-                document.getElementById('btn-loader').classList.add('hidden');
+                scanController = null;
+                setScanningState(false); // Reset buttons
             }
         }
 
         function createSignalCard(signal, index, isSavedView = false, containerId = 'result-container') {
             const container = document.getElementById(containerId);
             
-            [cite_start]// MISSION COLOUR LOGIC - STRICTLY RESERVED [cite: 190-193]
             let barColor = "bg-nesta-darkgrey"; 
             let badgeColor = "bg-gray-100 text-nesta-darkgrey";
             const m = (signal.mission || "").toLowerCase();
@@ -488,7 +531,7 @@
             }
             else if (m.includes("sustainable")) { 
                 barColor = "bg-nesta-green"; 
-                badgeColor = "bg-nesta-green text-nesta-navy"; // AA Compliance
+                badgeColor = "bg-nesta-green text-nesta-navy"; 
             }
             else if (m.includes("healthy")) { 
                 barColor = "bg-nesta-pink"; 
@@ -498,9 +541,12 @@
             const missionEmoji = getMissionEmoji(signal.mission || '');
             const sourceName = formatSource(signal.final_url || signal.url);
             const lensTags = getLensBadges(signal.lenses || '');
+            const cleanHook = cleanText(signal.hook);
 
             const card = document.createElement('div');
-            card.className = `bg-white p-7 border border-gray-100 border-t-8 ${barColor} card-hover flex flex-col h-full shadow-soft rounded-xl animate-fade-in-up`;
+            // Add ID for scroll targeting
+            card.id = `${containerId}-card-${index}`;
+            card.className = `bg-white p-7 border border-gray-100 border-t-8 ${barColor} card-hover flex flex-col h-full shadow-soft rounded-xl animate-fade-in-up transition-all duration-300`;
             card.style.borderTopColor = barColor.replace('bg-', 'var(--color-nesta-');
 
             card.innerHTML = `
@@ -519,7 +565,7 @@
                 
                 ${lensTags}
 
-                <p class="text-sm text-nesta-darkgrey mb-6 leading-relaxed flex-grow font-body">${signal.hook}</p>
+                <p class="text-sm text-nesta-darkgrey mb-6 leading-relaxed flex-grow font-body">${cleanHook}</p>
                 
                 <div class="grid grid-cols-3 gap-2 py-4 border-t border-b border-gray-100 mb-5 bg-gray-50/50 rounded-sm">
                      <div class="text-center"><div class="text-[9px] text-gray-400 uppercase font-bold mb-1 tracking-wider">Novelty</div><div class="font-bold text-nesta-navy text-lg">${signal.score_novelty}/10</div></div>
@@ -602,14 +648,60 @@
             a.click();
         }
 
+        // --- INTERACTIVE RADAR ---
+        function scrollToCard(index) {
+            switchView('list'); // Switch back to list to see the card
+            const cardId = `result-container-card-${index}`;
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Visual feedback
+                card.classList.add('card-highlight');
+                setTimeout(() => card.classList.remove('card-highlight'), 2000);
+            }
+        }
+
         function renderRadar() {
             if(radarChart) radarChart.destroy();
             const ctx = document.getElementById('signalRadar').getContext('2d');
-            const dataPoints = currentSignals.map(s => ({ x: s.score_novelty || Math.random()*10, y: s.score_evidence || Math.random()*10, r: (s.score/10)||5, title: s.title }));
+            const dataPoints = currentSignals.map((s, i) => ({ 
+                x: s.score_novelty || Math.random()*10, 
+                y: s.score_evidence || Math.random()*10, 
+                r: (s.score/10)||5, 
+                title: s.title,
+                index: i // Store index for click handler
+            }));
+            
             radarChart = new Chart(ctx, {
                 type: 'bubble',
-                data: { datasets: [{ label: 'Active Signals', data: dataPoints, backgroundColor: 'rgba(0, 0, 255, 0.6)', borderColor: '#0000FF', borderWidth: 1, hoverBackgroundColor: '#0F294A', hoverBorderColor: '#0F294A' }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'NOVELTY (Distance from Mainstream)', font: { weight: 'bold', family: 'Averta' }, color: '#0F294A' }, min: 0, max: 10, grid: { color: '#E5E7EB' } }, y: { title: { display: true, text: 'EVIDENCE (Reality Factor)', font: { weight: 'bold', family: 'Averta' }, color: '#0F294A' }, min: 0, max: 10, grid: { color: '#E5E7EB' } } }, plugins: { tooltip: { backgroundColor: '#0F294A', titleFont: { family: 'Zosia Display', size: 14 }, bodyFont: { family: 'Averta' }, padding: 12, callbacks: { label: function(context) { return context.raw.title; } } }, legend: { display: false } } }
+                data: { datasets: [{ 
+                    label: 'Active Signals', 
+                    data: dataPoints, 
+                    backgroundColor: 'rgba(0, 0, 255, 0.6)', 
+                    borderColor: '#0000FF', 
+                    borderWidth: 1, 
+                    hoverBackgroundColor: '#0F294A', 
+                    hoverBorderColor: '#0F294A' 
+                }] },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    onClick: (evt, activeElements) => {
+                        if (activeElements.length > 0) {
+                            const dataIndex = activeElements[0].index; // Index in dataset
+                            const point = dataPoints[dataIndex];
+                            scrollToCard(point.index);
+                        }
+                    },
+                    scales: { 
+                        x: { title: { display: true, text: 'NOVELTY (Distance from Mainstream)', font: { weight: 'bold', family: 'Averta' }, color: '#0F294A' }, min: 0, max: 10, grid: { color: '#E5E7EB' } }, 
+                        y: { title: { display: true, text: 'EVIDENCE (Reality Factor)', font: { weight: 'bold', family: 'Averta' }, color: '#0F294A' }, min: 0, max: 10, grid: { color: '#E5E7EB' } } 
+                    }, 
+                    plugins: { 
+                        tooltip: { backgroundColor: '#0F294A', titleFont: { family: 'Zosia Display', size: 14 }, bodyFont: { family: 'Averta' }, padding: 12, callbacks: { label: function(context) { return context.raw.title; } } }, 
+                        legend: { display: false } 
+                    } 
+                }
             });
         }
     </script>
