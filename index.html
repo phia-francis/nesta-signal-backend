@@ -890,12 +890,7 @@
                 if(data.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">Database is empty.</div>'; return; }
                 
                 currentSaved.forEach((sig, i) => {
-                    const normalized = {
-                        title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
-                        mission: sig.Mission, lenses: sig.Lenses, 
-                        score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
-                        shareable: sig.Shareable, feedback: sig.Feedback || sig.User_Comment, _row: sig._row, source_date: sig.Source_Date
-                    };
+                    const normalized = normalizeSignal(sig);
                     createSignalCard(normalized, i, true, 'saved-list');
                 });
             } catch(e) { list.innerHTML = '<div class="col-span-full text-center text-nesta-red py-10 font-bold">Failed to load database.</div>'; }
