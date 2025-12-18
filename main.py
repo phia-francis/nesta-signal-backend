@@ -4,11 +4,12 @@ import asyncio
 import random
 import re
 import httpx
+from datetime import datetime
 from urllib.parse import urlparse
 from typing import Optional, List, Dict, Any, Set
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from pydantic import BaseModel, Field
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -197,11 +198,20 @@ class ChatRequest(BaseModel):
 async def chat_endpoint(req: ChatRequest):
     run = None
     try:
-        print(f"Incoming: {req.message}")
-        prompt = req.message
-        prompt += "\n\nROLE: You are Nesta's Discovery Hub Lead Foresight Researcher."
-        prompt += "\n\nPROTOCOL: 1. SEARCH high-friction queries. 2. SELECT best candidates. 3. READ candidates (using 'fetch_article_text') to verify they are real/relevant. 4. DISPLAY cards only for verified signals."
-        prompt += "\n\nTOOL CONTRACT: You MUST call 'fetch_article_text' on a URL before calling 'display_signal_card'. Never display a card based solely on a Google snippet."
+        # 1. Get Current Date
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        print(f"Incoming: {req.message} | Date: {today_str}")
+        
+        # 2. Construct Prompt
+        prompt_parts = [
+            req.message,
+            f"CURRENT DATE: {today_str}",
+            "ROLE: You are Nesta's Discovery Hub Lead Foresight Researcher.",
+            "PROTOCOL: 1. SEARCH high-friction queries (e.g., 'unregulated', 'banned', 'DIY', 'citizen science', 'stealth startup', 'novel application'). 2. SELECT best candidates. 3. READ candidates (using 'fetch_article_text') to verify they are real/relevant. 4. DISPLAY cards only for verified signals.",
+            "SEARCH RULE: Do NOT include specific years (e.g., '2024', '2025') or 'since:' operators in your search queries. The search tool automatically applies the correct time filter based on the user's selection.",
+            "TOOL CONTRACT: You MUST call 'fetch_article_text' on a URL before calling 'display_signal_card'. Never display a card based solely on a Google snippet."
+        ]
+        prompt = "\n\n".join(prompt_parts)
         if req.tech_mode: prompt += "\nCONSTRAINT: Hard Tech / Emerging Tech ONLY."
         
         # Explicit instruction for Gateway to Research
@@ -306,6 +316,7 @@ def update_sig(req: Dict[str, Any]):
         print(f"Update Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- STATIC FILE SERVING ---
 @app.get("/")
 def serve_home():
     try:
@@ -313,3 +324,12 @@ def serve_home():
             return HTMLResponse(content=f.read(), status_code=200)
     except:
         return HTMLResponse(content="<h1>Backend Running</h1>", status_code=200)
+
+@app.get("/Zosia-Display.woff2")
+def serve_font1(): return FileResponse("Zosia-Display.woff2")
+
+@app.get("/Averta-Regular.otf")
+def serve_font2(): return FileResponse("Averta-Regular.otf")
+
+@app.get("/Averta-Semibold.otf")
+def serve_font3(): return FileResponse("Averta-Semibold.otf")
