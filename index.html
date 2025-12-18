@@ -674,12 +674,19 @@
             const dot = el.querySelector('div');
             
             // Allow 'normal' type for neutral/blue notifications that aren't errors
-            let colorClass = 'bg-nesta-aqua';
-            let borderClass = 'border-nesta-aqua';
-            
-            if (type === 'error') {
-                colorClass = 'bg-nesta-red';
-                borderClass = 'border-nesta-red';
+            let colorClass, borderClass;
+            switch (type) {
+                case 'error':
+                    colorClass = 'bg-nesta-red';
+                    borderClass = 'border-nesta-red';
+                    break;
+                case 'success':
+                    colorClass = 'bg-nesta-green';
+                    borderClass = 'border-nesta-green';
+                    break;
+                default: // 'normal' and other types
+                    colorClass = 'bg-nesta-aqua';
+                    borderClass = 'border-nesta-aqua';
             }
             
             dot.className = `w-2 h-2 rounded-full ${colorClass}`;
