@@ -63,7 +63,7 @@
                     },
                     boxShadow: {
                         'soft': '0 4px 20px -2px rgba(15, 41, 74, 0.08)',
-                        'hover': '0 10px 25px -5px rgba(0, 0, 255, 0.12)',
+                        'hover': '0 10px 30px -5px rgba(0, 0, 255, 0.15)',
                         'glow': '0 0 15px rgba(151, 217, 227, 0.3)',
                     }
                 }
@@ -177,36 +177,37 @@
         
         <div class="bg-white rounded-xl shadow-soft p-10 space-y-10 relative overflow-hidden border border-gray-100">
             
-            <div class="relative group">
+            <div class="relative group transition-all duration-300 ease-out hover:-translate-y-1">
                 <label for="topic-input" class="sr-only">Search</label>
                 <input type="text" id="topic-input" name="topic"
-                    class="w-full text-4xl font-display text-nesta-navy placeholder-gray-300 border-b-2 border-nesta-sand py-4 focus:outline-none focus:border-nesta-aqua transition-all bg-transparent"
+                    class="w-full text-3xl md:text-4xl font-display text-nesta-navy placeholder-gray-300 border-2 border-gray-100 rounded-2xl py-6 px-8 shadow-soft focus:outline-none focus:border-nesta-blue focus:ring-4 focus:ring-nesta-blue/5 transition-all duration-300 bg-white hover:shadow-hover hover:border-nesta-blue/30 focus:scale-[1.01]"
                     placeholder="Scanning for... (e.g. 'Synthetic Biology')"
-                    onkeypress="handleEnter(event)">
-                <div class="absolute right-0 top-6 text-nesta-blue transition-transform group-focus-within:scale-110 duration-300">
-                    <svg class="w-10 h-10 animate-pulse-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    onkeypress="handleEnter(event)"
+                    oninput="toggleButtonState()">
+                <div class="absolute right-8 top-1/2 -translate-y-1/2 text-nesta-blue transition-all duration-500 ease-out group-focus-within:scale-110 group-focus-within:rotate-12 group-focus-within:text-nesta-aqua">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-10 items-end">
                 
                 <div class="md:col-span-4 space-y-3">
-                    <label for="mission-select" class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Nesta Mission</label>
-                    <div class="relative">
-                        <select id="mission-select" name="mission" class="w-full appearance-none bg-gray-50/50 border-b-2 border-nesta-sand text-nesta-navy font-bold py-3 px-4 rounded-t-sm focus:ring-0 focus:border-nesta-aqua cursor-pointer hover:bg-gray-50 transition">
+                    <label for="mission-select" class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest pl-1">Nesta Mission</label>
+                    <div class="relative group transition-all duration-300 ease-out hover:-translate-y-1">
+                        <select id="mission-select" name="mission" class="w-full appearance-none bg-white border-2 border-gray-100 text-nesta-navy font-bold text-lg py-4 px-6 rounded-2xl focus:outline-none focus:border-nesta-blue focus:ring-4 focus:ring-nesta-blue/5 cursor-pointer hover:border-nesta-blue/30 transition-all duration-300 shadow-soft hover:shadow-hover">
                             <option class="text-nesta-navy" value="All Missions">All Missions</option>
                             <option class="text-nesta-navy" value="A Fairer Start">A Fairer Start 📚</option>
                             <option class="text-nesta-navy" value="A Healthy Life">A Healthy Life ❤️‍🩹</option>
                             <option class="text-nesta-navy" value="A Sustainable Future">A Sustainable Future 🌳</option>
                         </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-nesta-navy">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-6 pointer-events-none text-nesta-navy group-hover:text-nesta-blue transition-colors duration-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
                 </div>
 
                 <div class="md:col-span-3 space-y-4">
-                    <div class="flex justify-between items-baseline">
+                    <div class="flex justify-between items-baseline px-1">
                         <label for="signal-count" class="text-xs font-bold text-nesta-darkgrey uppercase tracking-widest">Quantity</label>
                         <span id="count-display" class="text-xs font-bold text-nesta-navy bg-nesta-aqua/20 px-3 py-1 rounded-full">5 Signals</span>
                     </div>
@@ -237,18 +238,25 @@
                 </div>
                 
                 <div class="flex gap-4 w-full md:w-auto items-center">
-                    <label for="time-filter" class="sr-only">Time Horizon</label>
-                    <select id="time-filter" name="time_filter" class="bg-transparent text-sm font-bold text-nesta-navy focus:outline-none hover:text-nesta-blue cursor-pointer px-2">
-                        <option class="text-nesta-navy">Past Month</option>
-                        <option class="text-nesta-navy">Past 3 Months</option>
-                        <option class="text-nesta-navy">Past 6 Months</option>
-                        <option class="text-nesta-navy">Past Year</option>
-                    </select>
-                    <div class="h-6 w-px bg-gray-300"></div>
+                    
+                    <div class="relative group">
+                        <label for="time-filter" class="sr-only">Time Horizon</label>
+                        <select id="time-filter" name="time_filter" class="appearance-none bg-white border-2 border-gray-100 text-nesta-navy font-bold text-sm py-3 pl-5 pr-10 rounded-full focus:outline-none focus:border-nesta-blue focus:ring-2 focus:ring-nesta-blue/5 cursor-pointer hover:border-nesta-blue/30 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                            <option class="text-nesta-navy">Past Month</option>
+                            <option class="text-nesta-navy">Past 3 Months</option>
+                            <option class="text-nesta-navy">Past 6 Months</option>
+                            <option class="text-nesta-navy">Past Year</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-nesta-navy group-hover:text-nesta-blue transition-colors">
+                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+
+                    <div class="h-8 w-px bg-gray-200 mx-2"></div>
                     
                     <button onclick="generateSignal(true)" id="broad-btn" class="btn-interactive px-6 py-3 text-sm font-bold text-nesta-darkgrey hover:text-nesta-blue hover:bg-gray-50 rounded border border-transparent hover:border-nesta-blue/20">Broad Scan</button>
                     
-                    <button id="search-btn" onclick="generateSignal(false)" class="btn-interactive px-8 py-3 bg-nesta-blue text-white text-sm font-bold rounded shadow-lg hover:bg-blue-700 hover:shadow-xl flex items-center gap-3">
+                    <button id="search-btn" onclick="generateSignal(false)" class="hidden btn-interactive px-8 py-3 bg-nesta-blue text-white text-sm font-bold rounded shadow-lg hover:bg-blue-700 hover:shadow-xl flex items-center gap-3">
                         <span>Initiate Scan</span>
                     </button>
                     
@@ -361,6 +369,26 @@
                 return;
             }
             loadPreview();
+            toggleButtonState(); // Initialize button state
+        }
+
+        function toggleButtonState() {
+            // Don't toggle while processing to avoid glitches
+            if (isProcessing) return;
+
+            const input = document.getElementById('topic-input');
+            const broadBtn = document.getElementById('broad-btn');
+            const searchBtn = document.getElementById('search-btn');
+            
+            const hasText = input.value.trim().length > 0;
+
+            if (hasText) {
+                broadBtn.classList.add('hidden');
+                searchBtn.classList.remove('hidden');
+            } else {
+                broadBtn.classList.remove('hidden');
+                searchBtn.classList.add('hidden');
+            }
         }
 
         // --- LOADING ANIMATION LOGIC ---
@@ -517,9 +545,9 @@
                 broadBtn.classList.add('hidden');
                 stopBtn.classList.remove('hidden');
             } else {
-                startBtn.classList.remove('hidden');
-                broadBtn.classList.remove('hidden');
+                // Determine which button to show based on text state
                 stopBtn.classList.add('hidden');
+                toggleButtonState();
             }
         }
 
