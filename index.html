@@ -22,19 +22,19 @@
                 extend: {
                     colors: {
                         nesta: {
-                            blue: '#0000FF',       
-                            navy: '#0F294A',       
-                            pink: '#F6A4B7',       
-                            yellow: '#FDB633',     
-                            green: '#18A48C',      
-                            aqua: '#97D9E3',       
-                            purple: '#9A1BBE',     
-                            orange: '#FF6E47',     
-                            red: '#EB003B',        
-                            sand: '#D2C9C0',       
-                            darkgrey: '#646363',   
-                            black: '#000000',      
-                            white: '#FFFFFF'       
+                            blue: '#0000FF',        
+                            navy: '#0F294A',        
+                            pink: '#F6A4B7',        
+                            yellow: '#FDB633',      
+                            green: '#18A48C',       
+                            aqua: '#97D9E3',        
+                            purple: '#9A1BBE',      
+                            orange: '#FF6E47',      
+                            red: '#EB003B',         
+                            sand: '#D2C9C0',        
+                            darkgrey: '#646363',    
+                            black: '#000000',       
+                            white: '#FFFFFF'        
                         }
                     },
                     fontFamily: {
@@ -382,31 +382,69 @@
             'Default': '#646363' // Dark Grey for Mission Adjacent/Others
         };
 
+        // --- IMPROVED BACKEND WARMUP LOGIC FOR RENDER COLD STARTS ---
         async function warmBackend() {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 5000);
-            try {
-                const res = await fetch(`${API_BASE_URL}/`, { method: 'GET', cache: 'no-store', signal: controller.signal });
-                return res.ok;
-            } catch (err) {
-                console.error('Backend warmup failed', err);
-                return false;
-            } finally {
-                clearTimeout(timeout);
+            // Helper function for a single check
+            const check = async () => {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout for each ping
+                try {
+                    const res = await fetch(`${API_BASE_URL}/`, { method: 'GET', cache: 'no-store', signal: controller.signal });
+                    return res.ok;
+                } catch (e) {
+                    console.error('Backend check failed:', e);
+                    return false;
+                } finally {
+                    clearTimeout(timeout);
+                }
+            };
+
+            // 1. Try once immediately. If it's already warm, we are done.
+            if (await check()) return true;
+
+            // 2. If first check fails, backend is sleeping. Start Polling Loop.
+            // Render free tier can take 30-90 seconds to wake up.
+            showToast('Waking up Scout Agent... (This may take 60s)', 'normal');
+            
+            const start = Date.now();
+            const MAX_WAIT_MS = 90000; // 90 seconds max wait
+            let attempt = 0;
+
+            while (Date.now() - start < MAX_WAIT_MS) {
+                attempt++;
+                await new Promise(r => setTimeout(r, 4000)); // Wait 4s between checks
+                
+                if (await check()) {
+                    showToast('Agent Online!', 'success');
+                    return true;
+                }
+
+                // Update user every 3rd failed attempt (approx 12s) to keep them engaged
+                if (attempt % 3 === 0) {
+                     showToast('Still waking up... please wait', 'normal');
+                }
             }
+            
+            showToast('Connection failed. Please refresh.', 'error');
+            return false;
         }
 
         async function initDashboard() {
+            // Load the UI skeleton first so the page isn't blank
+            toggleButtonState(); 
+            switchFilter('scan');
+
+            // Now perform the robust connection check
             const ready = await warmBackend();
+            
             if (!ready) {
-                showToast('Backend offline. Retrying...', 'error');
-                setTimeout(loadPreview, 1500);
+                // If we failed after 90s, show error in preview area
+                document.getElementById('preview-grid').innerHTML = '<div class="text-center py-10 text-nesta-red font-bold">Backend Offline. Please refresh page.</div>';
                 return;
             }
+            
+            // Backend is ready, safe to fetch data
             loadPreview();
-            toggleButtonState(); 
-            // Init with empty scan view
-            switchFilter('scan');
         }
 
         function toggleButtonState() {
@@ -634,8 +672,25 @@
             const el = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
             const dot = el.querySelector('div');
-            dot.className = `w-2 h-2 rounded-full ${type === 'error' ? 'bg-nesta-red' : 'bg-nesta-aqua'}`;
-            el.className = `fixed bottom-8 right-8 bg-nesta-navy text-white px-6 py-4 shadow-2xl transform transition-all duration-500 z-[120] font-bold text-sm flex items-center gap-4 rounded-lg border-l-4 ${type === 'error' ? 'border-nesta-red' : 'border-nesta-aqua'}`;
+            
+            // Allow 'normal' type for neutral/blue notifications that aren't errors
+            let colorClass, borderClass;
+            switch (type) {
+                case 'error':
+                    colorClass = 'bg-nesta-red';
+                    borderClass = 'border-nesta-red';
+                    break;
+                case 'success':
+                    colorClass = 'bg-nesta-green';
+                    borderClass = 'border-nesta-green';
+                    break;
+                default: // 'normal' and other types
+                    colorClass = 'bg-nesta-aqua';
+                    borderClass = 'border-nesta-aqua';
+            }
+            
+            dot.className = `w-2 h-2 rounded-full ${colorClass}`;
+            el.className = `fixed bottom-8 right-8 bg-nesta-navy text-white px-6 py-4 shadow-2xl transform transition-all duration-500 z-[120] font-bold text-sm flex items-center gap-4 rounded-lg border-l-4 ${borderClass}`;
             el.classList.remove('translate-y-24', 'opacity-0');
             setTimeout(() => el.classList.add('translate-y-24', 'opacity-0'), 3000);
         }
@@ -731,6 +786,7 @@
             const signal = scanController.signal;
 
             try {
+                // We reuse the robust check here too, in case user went idle
                 const backendReady = await warmBackend();
                 if (!backendReady) {
                     stopLoadingSimulation();
