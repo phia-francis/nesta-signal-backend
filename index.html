@@ -141,8 +141,16 @@
         .btn-interactive:active { transform: translateY(0); transform: scale(0.97); }
 
         /* Radar Filters */
-        .radar-filter-btn { transition: all 0.2s ease; }
-        .radar-filter-btn.active { background-color: #0F294A; color: white; border-color: #0F294A; }
+        .filter-view-btn { transition: all 0.2s ease; }
+        .filter-view-btn.active { background-color: #0F294A; color: white; border-color: #0F294A; }
+
+        /* Fix Dropdown Arrows */
+        select.appearance-none {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: none; /* Force remove default arrow */
+        }
 
         @keyframes pulse-purple {
             0% { box-shadow: 0 0 0 0 rgba(154, 27, 190, 0.4); }
@@ -235,6 +243,7 @@
 
             <div class="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex flex-wrap gap-3" id="source-bias-container">
+                    <div class="bias-chip relative"><input type="checkbox" id="bias-gtr" name="source_bias" value="Gateway to Research" class="peer sr-only"><label for="bias-gtr" class="px-4 py-2 border border-nesta-sand rounded-full text-xs font-bold text-nesta-darkgrey cursor-pointer block">Gateway to Research</label></div>
                     <div class="bias-chip relative"><input type="checkbox" id="bias-academia" name="source_bias" value="Academia" class="peer sr-only"><label for="bias-academia" class="px-4 py-2 border border-nesta-sand rounded-full text-xs font-bold text-nesta-darkgrey cursor-pointer block">Academia</label></div>
                     <div class="bias-chip relative"><input type="checkbox" id="bias-vc" name="source_bias" value="VC" class="peer sr-only"><label for="bias-vc" class="px-4 py-2 border border-nesta-sand rounded-full text-xs font-bold text-nesta-darkgrey cursor-pointer block">VC Blogs</label></div>
                     <div class="bias-chip relative"><input type="checkbox" id="bias-scimags" name="source_bias" value="Scientific Magazines" class="peer sr-only"><label for="bias-scimags" class="px-4 py-2 border border-nesta-sand rounded-full text-xs font-bold text-nesta-darkgrey cursor-pointer block">Sci Mags</label></div>
@@ -272,22 +281,21 @@
             </div>
         </div>
 
+        <div id="view-controls" class="flex justify-between items-center px-2">
+            <h3 id="view-title" class="text-2xl brand-font text-nesta-navy">Signal Results</h3>
+            <div class="flex gap-2 bg-white p-1.5 rounded-full shadow-sm border border-gray-100">
+                <button onclick="switchFilter('scan')" id="filter-btn-scan" class="filter-view-btn active px-4 py-1.5 rounded-full text-xs font-bold border border-nesta-navy text-nesta-navy hover:bg-gray-100">Current Scan</button>
+                <div class="h-6 w-px bg-gray-200 mx-1"></div>
+                <button onclick="switchFilter('recent')" id="filter-btn-recent" class="filter-view-btn px-4 py-1.5 rounded-full text-xs font-bold border border-transparent text-gray-500 hover:bg-gray-50 hover:text-nesta-navy">Recent DB</button>
+                <button onclick="switchFilter('funding')" id="filter-btn-funding" class="filter-view-btn px-4 py-1.5 rounded-full text-xs font-bold border border-transparent text-gray-500 hover:bg-gray-50 hover:text-nesta-navy">Funding</button>
+                <button onclick="switchFilter('tech')" id="filter-btn-tech" class="filter-view-btn px-4 py-1.5 rounded-full text-xs font-bold border border-transparent text-gray-500 hover:bg-gray-50 hover:text-nesta-navy">Emerging Tech</button>
+            </div>
+        </div>
+
         <div id="result-container" class="grid grid-cols-1 gap-8"></div>
         
         <div id="radar-container" class="hidden bg-white p-10 shadow-soft border border-gray-100 min-h-[600px] flex flex-col items-center justify-center rounded-xl relative">
-            
-            <div class="absolute top-8 left-0 w-full px-10 flex justify-between items-center z-10">
-                <h3 class="text-2xl brand-font text-nesta-navy">Innovation Landscape</h3>
-                <div class="flex gap-2">
-                    <button onclick="filterRadar('scan')" id="radar-btn-scan" class="radar-filter-btn active px-4 py-1.5 rounded-full text-xs font-bold border border-nesta-navy text-nesta-navy hover:bg-gray-100">Current Scan</button>
-                    <div class="h-6 w-px bg-gray-300 mx-1"></div>
-                    <button onclick="filterRadar('recent')" id="radar-btn-recent" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Recent DB</button>
-                    <button onclick="filterRadar('funding')" id="radar-btn-funding" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Funding</button>
-                    <button onclick="filterRadar('tech')" id="radar-btn-tech" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Emerging Tech</button>
-                </div>
-            </div>
-
-            <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest mt-12">Click dots to view signal details</p>
+            <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest mt-4">Click dots to view signal details</p>
             <div class="w-full h-[500px] relative"><canvas id="signalRadar"></canvas></div>
         </div>
 
@@ -354,6 +362,7 @@
         let currentSignals = []; // Displayed signals (Scan or DB View)
         let lastScanResults = []; // Cache for "Current Scan" view
         let currentSaved = []; // Full DB cache
+        let activeFilter = 'scan'; // Track current filter
         
         let radarChart = null;
         let isProcessing = false;
@@ -394,6 +403,8 @@
             }
             loadPreview();
             toggleButtonState(); 
+            // Init with empty scan view
+            switchFilter('scan');
         }
 
         function toggleButtonState() {
@@ -542,24 +553,38 @@
             };
         }
 
-        // --- RADAR FILTER LOGIC ---
-        async function filterRadar(type) {
+        // --- UNIFIED FILTER LOGIC ---
+        async function switchFilter(type) {
+            activeFilter = type;
+            
             // UI Toggle
-            document.querySelectorAll('.radar-filter-btn').forEach(b => {
+            document.querySelectorAll('.filter-view-btn').forEach(b => {
                 b.classList.remove('active', 'bg-nesta-navy', 'text-white', 'border-nesta-navy');
-                b.classList.add('text-gray-500', 'border-gray-200');
+                b.classList.add('text-gray-500', 'border-transparent');
             });
-            const btn = document.getElementById(`radar-btn-${type}`);
-            btn.classList.add('active', 'bg-nesta-navy', 'text-white', 'border-nesta-navy');
-            btn.classList.remove('text-gray-500', 'border-gray-200');
+            const btn = document.getElementById(`filter-btn-${type}`);
+            if(btn) {
+                btn.classList.add('active', 'bg-nesta-navy', 'text-white', 'border-nesta-navy');
+                btn.classList.remove('text-gray-500', 'border-transparent');
+            }
 
             // Data Logic
+            const listContainer = document.getElementById('result-container');
+            
             if (type === 'scan') {
-                if (lastScanResults.length === 0) return showToast("No active scan results", "error");
+                if (lastScanResults.length === 0) {
+                    currentSignals = [];
+                    listContainer.innerHTML = `<div class="col-span-full py-16 text-center border-2 border-dashed border-gray-200 rounded-xl"><p class="text-nesta-darkgrey font-bold">No active scan results.</p><p class="text-xs text-gray-400 mt-1">Enter a topic above to initiate a scan.</p></div>`;
+                    renderRadar(); // Clears radar
+                    return;
+                }
                 currentSignals = lastScanResults;
             } else {
                 await ensureDatabaseLoaded();
-                if (currentSaved.length === 0) return showToast("Database empty or offline", "error");
+                if (currentSaved.length === 0) {
+                    listContainer.innerHTML = `<div class="text-center py-10">Database offline or empty.</div>`;
+                    return;
+                }
                 
                 let filtered = [];
                 if (type === 'recent') {
@@ -580,13 +605,12 @@
                 currentSignals = filtered.map(normalizeSignal);
             }
             
-            // Re-render
-            updateResultContainerForRadar(); 
+            // Re-render both views
+            renderList(); 
             renderRadar();
         }
 
-        function updateResultContainerForRadar() {
-            // Need to populate the hidden result-container so scrolling works
+        function renderList() {
             const container = document.getElementById('result-container');
             container.innerHTML = '';
             currentSignals.forEach((sig, i) => createSignalCard(sig, i));
@@ -619,10 +643,7 @@
                 list.classList.add('hidden'); radar.classList.remove('hidden');
                 btnRadar.className = "px-5 py-2 text-xs font-bold transition shadow-sm bg-nesta-navy text-white rounded-md";
                 btnList.className = "px-5 py-2 text-xs font-bold transition text-nesta-darkgrey hover:text-nesta-navy rounded-md";
-                
-                // If opening radar for first time without scan, default to Recent DB
-                if (currentSignals.length === 0) filterRadar('recent');
-                else renderRadar();
+                renderRadar(); // Ensure radar renders when switched to
             }
         }
 
@@ -659,6 +680,8 @@
             isProcessing = true;
             setScanningState(true); 
             switchView('list');
+            // Force filter to 'scan' mode
+            switchFilter('scan'); 
             
             container.innerHTML = `
                 <div class="col-span-full py-24 flex flex-col items-center justify-center space-y-8 animate-fade-in-up">
@@ -713,15 +736,11 @@
 
                 if (data.ui_type === 'signal_list') {
                     currentSignals = data.items.map(normalizeSignal);
-                    lastScanResults = currentSignals; // Cache for radar
+                    lastScanResults = currentSignals; 
                     
                     data.items.forEach((item, index) => {
                         setTimeout(() => createSignalCard(item, index), index * 100);
                     });
-                    
-                    // Reset Radar filter UI
-                    document.querySelectorAll('.radar-filter-btn').forEach(b => b.classList.remove('active', 'bg-nesta-navy', 'text-white'));
-                    document.getElementById('radar-btn-scan').classList.add('active', 'bg-nesta-navy', 'text-white');
                     
                     setTimeout(loadPreview, 2000);
                 } else {
