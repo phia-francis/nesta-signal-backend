@@ -140,6 +140,10 @@
         .btn-interactive:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         .btn-interactive:active { transform: translateY(0); transform: scale(0.97); }
 
+        /* Radar Filters */
+        .radar-filter-btn { transition: all 0.2s ease; }
+        .radar-filter-btn.active { background-color: #0F294A; color: white; border-color: #0F294A; }
+
         @keyframes pulse-purple {
             0% { box-shadow: 0 0 0 0 rgba(154, 27, 190, 0.4); }
             70% { box-shadow: 0 0 0 6px rgba(154, 27, 190, 0); }
@@ -270,9 +274,20 @@
 
         <div id="result-container" class="grid grid-cols-1 gap-8"></div>
         
-        <div id="radar-container" class="hidden bg-white p-10 shadow-soft border border-gray-100 min-h-[600px] flex flex-col items-center justify-center rounded-xl">
-            <h3 class="text-2xl brand-font mb-8 text-nesta-navy">Innovation Landscape</h3>
-            <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Click dots to view signal</p>
+        <div id="radar-container" class="hidden bg-white p-10 shadow-soft border border-gray-100 min-h-[600px] flex flex-col items-center justify-center rounded-xl relative">
+            
+            <div class="absolute top-8 left-0 w-full px-10 flex justify-between items-center z-10">
+                <h3 class="text-2xl brand-font text-nesta-navy">Innovation Landscape</h3>
+                <div class="flex gap-2">
+                    <button onclick="filterRadar('scan')" id="radar-btn-scan" class="radar-filter-btn active px-4 py-1.5 rounded-full text-xs font-bold border border-nesta-navy text-nesta-navy hover:bg-gray-100">Current Scan</button>
+                    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                    <button onclick="filterRadar('recent')" id="radar-btn-recent" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Recent DB</button>
+                    <button onclick="filterRadar('funding')" id="radar-btn-funding" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Funding</button>
+                    <button onclick="filterRadar('tech')" id="radar-btn-tech" class="radar-filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-500 hover:border-nesta-navy hover:text-nesta-navy">Emerging Tech</button>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest mt-12">Click dots to view signal details</p>
             <div class="w-full h-[500px] relative"><canvas id="signalRadar"></canvas></div>
         </div>
 
@@ -335,17 +350,26 @@
             ? 'http://127.0.0.1:8000' 
             : 'https://nesta-signal-backend.onrender.com';
 
-        let currentSignals = [];
+        // --- GLOBAL STATE ---
+        let currentSignals = []; // Displayed signals (Scan or DB View)
+        let lastScanResults = []; // Cache for "Current Scan" view
+        let currentSaved = []; // Full DB cache
+        
         let radarChart = null;
         let isProcessing = false;
-        let scanController = null; // For cancelling requests
-        let currentSaved = [];
-        
-        // --- ANIMATION STATE ---
+        let scanController = null;
         let loadIntervals = [];
 
         const MISSION_EMOJIS = { 'A Fairer Start': '📚', 'A Healthy Life': '❤️‍🩹', 'A Sustainable Future': '🌳' };
         const LENS_EMOJIS = { 'Social': '👥', 'Tech': '🤖', 'Media': '🎙️', 'Powerhouse': '⚡' };
+        
+        // Nesta Mission Colors for Radar
+        const MISSION_COLORS = {
+            'A Fairer Start': '#FDB633', // Yellow
+            'A Healthy Life': '#F6A4B7', // Pink
+            'A Sustainable Future': '#18A48C', // Green
+            'Default': '#646363' // Dark Grey for Mission Adjacent/Others
+        };
 
         async function warmBackend() {
             const controller = new AbortController();
@@ -369,17 +393,14 @@
                 return;
             }
             loadPreview();
-            toggleButtonState(); // Initialize button state
+            toggleButtonState(); 
         }
 
         function toggleButtonState() {
-            // Don't toggle while processing to avoid glitches
             if (isProcessing) return;
-
             const input = document.getElementById('topic-input');
             const broadBtn = document.getElementById('broad-btn');
             const searchBtn = document.getElementById('search-btn');
-            
             const hasText = input.value.trim().length > 0;
 
             if (hasText) {
@@ -394,43 +415,30 @@
         // --- LOADING ANIMATION LOGIC ---
         function startLoadingSimulation() {
             const statuses = [
-                "Initializing Scout Agent...",
-                "Scanning Global Sources...",
-                "Filtering Mainstream Noise...",
-                "Applying Friction Method...",
-                "Scoring Novelty & Evidence...",
-                "Synthesizing Intelligence..."
+                "Initializing Scout Agent...", "Scanning Global Sources...", "Filtering Mainstream Noise...",
+                "Applying Friction Method...", "Scoring Novelty & Evidence...", "Synthesizing Intelligence..."
             ];
             let statusIndex = 0;
-            
-            stopLoadingSimulation(); // Clear existing
+            stopLoadingSimulation(); 
 
-            // Status Text Rotator (1.2s)
             const statInt = setInterval(() => {
                 statusIndex = (statusIndex + 1) % statuses.length;
                 const el = document.getElementById('loading-status-text');
                 if(el) {
                     el.style.opacity = '0';
-                    setTimeout(() => {
-                        el.innerText = statuses[statusIndex];
-                        el.style.opacity = '1';
-                    }, 200);
+                    setTimeout(() => { el.innerText = statuses[statusIndex]; el.style.opacity = '1'; }, 200);
                 }
             }, 1200);
             loadIntervals.push(statInt);
 
-            // Percentage Simulator
             let progress = 0;
             const progInt = setInterval(() => {
                 if(progress < 99) {
-                    // Logarithmic slowdown
                     let increment = (100 - progress) / 80;
                     if(increment < 0.1) increment = 0.1;
                     progress += increment;
-                    
                     const textEl = document.getElementById('loading-percent-text');
                     const barEl = document.getElementById('loading-bar-inner');
-                    
                     if(textEl) textEl.innerText = Math.floor(progress) + '%';
                     if(barEl) barEl.style.width = progress + '%';
                 }
@@ -446,6 +454,13 @@
         function getMissionEmoji(mission) {
             for (const [key, emoji] of Object.entries(MISSION_EMOJIS)) { if (mission.includes(key)) return emoji; }
             return ''; 
+        }
+
+        function getMissionColor(mission) {
+            for (const [key, color] of Object.entries(MISSION_COLORS)) {
+                if (mission && mission.includes(key)) return color;
+            }
+            return MISSION_COLORS['Default'];
         }
 
         function formatSource(url) {
@@ -481,28 +496,100 @@
             return html;
         }
 
+        // --- DATA MANAGEMENT ---
+        async function ensureDatabaseLoaded() {
+            if (currentSaved.length === 0) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/saved`);
+                    if(!res.ok) throw new Error();
+                    currentSaved = (await res.json()).reverse(); // Newest first
+                } catch(e) { console.error("DB Load Error", e); }
+            }
+        }
+
         async function loadPreview() {
             const grid = document.getElementById('preview-grid');
             try {
-                const res = await fetch(`${API_BASE_URL}/api/saved`);
-                if(!res.ok) throw new Error();
-                const data = await res.json();
+                await ensureDatabaseLoaded();
+                const data = currentSaved;
                 if(!data || data.length === 0) { grid.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-400">Database empty.</div>'; return; }
                 
-                // REVERSE TO GET NEWEST (BOTTOM OF SHEET) FIRST
-                const recent = data.slice().reverse().slice(0, 3);
+                const recent = data.slice(0, 3);
                 
                 grid.innerHTML = ''; 
                 recent.forEach((sig, i) => {
-                    const normalized = {
-                        title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
-                        mission: sig.Mission, lenses: sig.Lenses, 
-                        score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
-                        shareable: sig.Shareable, _row: sig._row, source_date: sig.Source_Date
-                    };
+                    const normalized = normalizeSignal(sig);
                     createSignalCard(normalized, i, false, 'preview-grid');
                 });
             } catch(e) { grid.innerHTML = '<div class="col-span-3 text-center text-xs text-red-400 py-10">Database Offline</div>'; }
+        }
+
+        function normalizeSignal(sig) {
+            return {
+                title: sig.Title || sig.title, 
+                score: sig.Score || sig.score, 
+                hook: sig.Hook || sig.hook, 
+                final_url: sig.URL || sig.final_url || sig.url,
+                mission: sig.Mission || sig.mission, 
+                lenses: sig.Lenses || sig.lenses, 
+                score_novelty: sig.Score_Novelty || sig.score_novelty, 
+                score_evidence: sig.Score_Evidence || sig.score_evidence, 
+                score_evocativeness: sig.Score_Evocativeness || sig.score_evocativeness,
+                shareable: sig.Shareable || sig.shareable, 
+                feedback: sig.Feedback || sig.User_Comment || sig.feedback,
+                _row: sig._row, 
+                source_date: sig.Source_Date || sig.source_date
+            };
+        }
+
+        // --- RADAR FILTER LOGIC ---
+        async function filterRadar(type) {
+            // UI Toggle
+            document.querySelectorAll('.radar-filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-nesta-navy', 'text-white', 'border-nesta-navy');
+                b.classList.add('text-gray-500', 'border-gray-200');
+            });
+            const btn = document.getElementById(`radar-btn-${type}`);
+            btn.classList.add('active', 'bg-nesta-navy', 'text-white', 'border-nesta-navy');
+            btn.classList.remove('text-gray-500', 'border-gray-200');
+
+            // Data Logic
+            if (type === 'scan') {
+                if (lastScanResults.length === 0) return showToast("No active scan results", "error");
+                currentSignals = lastScanResults;
+            } else {
+                await ensureDatabaseLoaded();
+                if (currentSaved.length === 0) return showToast("Database empty or offline", "error");
+                
+                let filtered = [];
+                if (type === 'recent') {
+                    filtered = currentSaved.slice(0, 10);
+                } else if (type === 'funding') {
+                    const keywords = ['fund', 'invest', 'venture', 'capital', 'raise', 'grant', 'million', 'billion', 'round'];
+                    filtered = currentSaved.filter(s => {
+                        const txt = ((s.Title||'') + (s.Hook||'') + (s.User_Comment||'')).toLowerCase();
+                        return keywords.some(k => txt.includes(k));
+                    });
+                } else if (type === 'tech') {
+                    filtered = currentSaved.filter(s => {
+                        const lenses = (s.Lenses || '').toLowerCase();
+                        const hook = (s.Hook || '').toLowerCase();
+                        return lenses.includes('tech') || hook.includes('ai') || hook.includes('quantum') || hook.includes('novel');
+                    });
+                }
+                currentSignals = filtered.map(normalizeSignal);
+            }
+            
+            // Re-render
+            updateResultContainerForRadar(); 
+            renderRadar();
+        }
+
+        function updateResultContainerForRadar() {
+            // Need to populate the hidden result-container so scrolling works
+            const container = document.getElementById('result-container');
+            container.innerHTML = '';
+            currentSignals.forEach((sig, i) => createSignalCard(sig, i));
         }
 
         function showToast(msg, type='success') {
@@ -523,6 +610,7 @@
             const radar = document.getElementById('radar-container');
             const btnList = document.getElementById('btn-list');
             const btnRadar = document.getElementById('btn-radar');
+            
             if(view === 'list') {
                 list.classList.remove('hidden'); radar.classList.add('hidden');
                 btnList.className = "px-5 py-2 text-xs font-bold transition shadow-sm bg-nesta-navy text-white rounded-md";
@@ -531,7 +619,10 @@
                 list.classList.add('hidden'); radar.classList.remove('hidden');
                 btnRadar.className = "px-5 py-2 text-xs font-bold transition shadow-sm bg-nesta-navy text-white rounded-md";
                 btnList.className = "px-5 py-2 text-xs font-bold transition text-nesta-darkgrey hover:text-nesta-navy rounded-md";
-                renderRadar();
+                
+                // If opening radar for first time without scan, default to Recent DB
+                if (currentSignals.length === 0) filterRadar('recent');
+                else renderRadar();
             }
         }
 
@@ -545,7 +636,6 @@
                 broadBtn.classList.add('hidden');
                 stopBtn.classList.remove('hidden');
             } else {
-                // Determine which button to show based on text state
                 stopBtn.classList.add('hidden');
                 toggleButtonState();
             }
@@ -570,11 +660,9 @@
             setScanningState(true); 
             switchView('list');
             
-            // --- NEW LOADING ANIMATION HTML ---
             container.innerHTML = `
                 <div class="col-span-full py-24 flex flex-col items-center justify-center space-y-8 animate-fade-in-up">
                     <div class="radar-loader w-16 h-16 border-4 border-t-nesta-blue"></div>
-                    
                     <div class="w-full max-w-md space-y-2">
                         <div class="flex justify-between items-end px-1">
                             <p id="loading-status-text" class="font-display text-xl text-nesta-navy transition-opacity duration-200">Initializing Scout Agent...</p>
@@ -583,9 +671,7 @@
                         <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                             <div id="loading-bar-inner" class="h-full bg-gradient-to-r from-nesta-blue to-nesta-aqua w-0 transition-all duration-100 ease-out"></div>
                         </div>
-                        <p class="text-[10px] font-bold text-nesta-darkgrey uppercase tracking-widest text-center pt-2">
-                            AI Analysis in Progress
-                        </p>
+                        <p class="text-[10px] font-bold text-nesta-darkgrey uppercase tracking-widest text-center pt-2">AI Analysis in Progress</p>
                     </div>
                 </div>`;
             
@@ -626,10 +712,17 @@
                 container.innerHTML = '';
 
                 if (data.ui_type === 'signal_list') {
-                    currentSignals = data.items;
+                    currentSignals = data.items.map(normalizeSignal);
+                    lastScanResults = currentSignals; // Cache for radar
+                    
                     data.items.forEach((item, index) => {
                         setTimeout(() => createSignalCard(item, index), index * 100);
                     });
+                    
+                    // Reset Radar filter UI
+                    document.querySelectorAll('.radar-filter-btn').forEach(b => b.classList.remove('active', 'bg-nesta-navy', 'text-white'));
+                    document.getElementById('radar-btn-scan').classList.add('active', 'bg-nesta-navy', 'text-white');
+                    
                     setTimeout(loadPreview, 2000);
                 } else {
                     container.innerHTML = `<div class="p-10 bg-white border border-gray-100 rounded-xl text-center text-nesta-navy shadow-sm">${data.content}</div>`;
@@ -653,8 +746,6 @@
             const m = (signal.mission || "").toLowerCase();
             
             // --- STYLING CONFIGURATION ---
-            
-            // 1. DEFAULT / MISSION ADJACENT (Dark Mode)
             let styles = {
                 cardBg: "bg-nesta-darkgrey",
                 barColor: "bg-nesta-darkgrey", 
@@ -671,7 +762,6 @@
                 button: "bg-nesta-aqua text-nesta-navy hover:bg-white"
             };
 
-            // 2. STANDARD MISSIONS (Colored Backgrounds + Navy Text)
             function colorCardOverrides(bgColor) {
                 return {
                     cardBg: bgColor,
@@ -690,26 +780,18 @@
                 };
             }
 
-            if (m.includes("fairer")) { 
-                styles = { ...styles, ...colorCardOverrides("bg-nesta-yellow") };
-            }
-            else if (m.includes("sustainable")) { 
-                styles = { ...styles, ...colorCardOverrides("bg-nesta-green") };
-            }
-            else if (m.includes("healthy")) { 
-                styles = { ...styles, ...colorCardOverrides("bg-nesta-pink") };
-            }
+            if (m.includes("fairer")) { styles = { ...styles, ...colorCardOverrides("bg-nesta-yellow") }; }
+            else if (m.includes("sustainable")) { styles = { ...styles, ...colorCardOverrides("bg-nesta-green") }; }
+            else if (m.includes("healthy")) { styles = { ...styles, ...colorCardOverrides("bg-nesta-pink") }; }
 
             const missionEmoji = getMissionEmoji(signal.mission || '');
             const sourceName = formatSource(signal.final_url || signal.url);
             const lensTags = getLensBadges(signal.lenses || '', styles.lens);
             const cleanHook = cleanText(signal.hook);
-            
             const accentClass = `text-[9px] uppercase font-bold mb-1 tracking-wider ${styles.accentLabel}`;
 
             const card = document.createElement('div');
             card.id = `${containerId}-card-${index}`;
-            // Use border-black/5 for subtle definition on colored cards
             card.className = `${styles.cardBg} p-7 border border-black/5 flex flex-col h-full shadow-soft rounded-xl animate-fade-in-up transition-all duration-300 transform hover:-translate-y-1`;
 
             card.innerHTML = `
@@ -778,20 +860,12 @@
             list.innerHTML = '<div class="col-span-full py-24 text-center flex flex-col items-center"><div class="radar-loader mb-4 border-2 border-gray-200 border-t-nesta-blue w-10 h-10"></div><p class="font-bold text-nesta-navy">Retrieving Intelligence...</p></div>';
             
             try {
-                const res = await fetch(`${API_BASE_URL}/api/saved`);
-                const data = await res.json();
+                await ensureDatabaseLoaded();
                 list.innerHTML = '';
-                // NEWEST FIRST for full database view as well
-                currentSaved = data.reverse(); 
-                if(data.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">Database is empty.</div>'; return; }
+                if(currentSaved.length === 0) { list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">Database is empty.</div>'; return; }
                 
                 currentSaved.forEach((sig, i) => {
-                    const normalized = {
-                        title: sig.Title, score: sig.Score, hook: sig.Hook, final_url: sig.URL,
-                        mission: sig.Mission, lenses: sig.Lenses, 
-                        score_novelty: sig.Score_Novelty, score_evidence: sig.Score_Evidence, score_evocativeness: sig.Score_Evocativeness,
-                        shareable: sig.Shareable, feedback: sig.Feedback || sig.User_Comment, _row: sig._row, source_date: sig.Source_Date
-                    };
+                    const normalized = normalizeSignal(sig);
                     createSignalCard(normalized, i, true, 'saved-list');
                 });
             } catch(e) { list.innerHTML = '<div class="col-span-full text-center text-nesta-red py-10 font-bold">Failed to load database.</div>'; }
@@ -807,7 +881,7 @@
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ url, title, shareable: shareVal, user_status: shareVal === 'No' ? 'Rejected' : 'Accepted', user_comment: commentVal, feedback: commentVal })
                 });
-                if(res.ok) { showToast('Database updated'); loadPreview(); }
+                if(res.ok) { showToast('Database updated'); ensureDatabaseLoaded(); loadPreview(); }
                 else throw new Error();
             } catch(e) { showToast('Update failed', 'error'); }
         }
@@ -837,21 +911,25 @@
         function renderRadar() {
             if(radarChart) radarChart.destroy();
             const ctx = document.getElementById('signalRadar').getContext('2d');
+            
             const dataPoints = currentSignals.map((s, i) => ({ 
                 x: s.score_novelty || Math.random()*10, 
                 y: s.score_evidence || Math.random()*10, 
                 r: (s.score/10)||5, 
                 title: s.title,
+                mission: s.mission,
                 index: i 
             }));
             
+            const pointColors = dataPoints.map(p => getMissionColor(p.mission));
+
             radarChart = new Chart(ctx, {
                 type: 'bubble',
                 data: { datasets: [{ 
                     label: 'Active Signals', 
                     data: dataPoints, 
-                    backgroundColor: 'rgba(0, 0, 255, 0.6)', 
-                    borderColor: '#0000FF', 
+                    backgroundColor: pointColors, 
+                    borderColor: pointColors, 
                     borderWidth: 1, 
                     hoverBackgroundColor: '#0F294A', 
                     hoverBorderColor: '#0F294A' 
