@@ -203,7 +203,13 @@ async def chat_endpoint(req: ChatRequest):
         prompt += "\n\nPROTOCOL: 1. SEARCH high-friction queries. 2. SELECT best candidates. 3. READ candidates (using 'fetch_article_text') to verify they are real/relevant. 4. DISPLAY cards only for verified signals."
         prompt += "\n\nTOOL CONTRACT: You MUST call 'fetch_article_text' on a URL before calling 'display_signal_card'. Never display a card based solely on a Google snippet."
         if req.tech_mode: prompt += "\nCONSTRAINT: Hard Tech / Emerging Tech ONLY."
-        prompt += f"\nCONSTRAINT: Time Horizon {req.time_filter}. Bias Source Types: {', '.join(req.source_types)}."
+        
+        # Explicit instruction for Gateway to Research
+        bias_sources = req.source_types
+        if "Gateway to Research" in bias_sources:
+            prompt += "\nCONSTRAINT: User selected 'Gateway to Research'. You MUST include searches using 'site:gtr.ukri.org' to find relevant projects."
+        
+        prompt += f"\nCONSTRAINT: Time Horizon {req.time_filter}. Bias Source Types: {', '.join(bias_sources)}."
         
         run = await asyncio.to_thread(
             client.beta.threads.create_and_run,
