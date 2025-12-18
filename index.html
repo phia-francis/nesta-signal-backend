@@ -437,9 +437,13 @@
             // Base duration roughly 25s for 1 signal, scaling up non-linearly
             // e.g., 5 signals might take 45s, 10 signals ~70s
             // This is just a simulation, but gives feedback based on request size.
-            const baseFactor = 250; 
-            const countFactor = (requestedCount || 5) * 40; 
-            const speed = baseFactor + countFactor; 
+            const SIMULATION_BASE_FACTOR = 250;
+            const DEFAULT_REQUEST_COUNT = 5;
+            const COUNT_MULTIPLIER = 40;
+
+            const baseFactor = SIMULATION_BASE_FACTOR;
+            const countFactor = (requestedCount || DEFAULT_REQUEST_COUNT) * COUNT_MULTIPLIER;
+            const speed = baseFactor + countFactor;
 
             const statInt = setInterval(() => {
                 statusIndex = (statusIndex + 1) % statuses.length;
