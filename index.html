@@ -482,10 +482,9 @@
 
         function getMissionColor(mission) {
             if (!mission) return MISSION_COLORS['Default'];
-            // Normalize checks to handle exact or partial matches
-            if (mission.includes("Fairer Start")) return MISSION_COLORS['A Fairer Start'];
-            if (mission.includes("Healthy Life")) return MISSION_COLORS['A Healthy Life'];
-            if (mission.includes("Sustainable Future")) return MISSION_COLORS['A Sustainable Future'];
+            for (const [key, color] of Object.entries(MISSION_COLORS)) {
+                if (mission.includes(key)) return color;
+            }
             return MISSION_COLORS['Default'];
         }
 
@@ -716,14 +715,16 @@
             
             startLoadingSimulation(signalCount);
 
+            const missionSelectValue = document.getElementById('mission-select').value;
+
             const payload = {
                 message: isBroad 
-                    ? `Find ${signalCount} high-novelty weak signals related to ${document.getElementById('mission-select').value}. Context: ${topic}` 
-                    : `Find ${signalCount} signals about ${topic} for ${document.getElementById('mission-select').value}`,
+                    ? `Find ${signalCount} high-novelty weak signals related to ${missionSelectValue}. Context: ${topic}` 
+                    : `Find ${signalCount} signals about ${topic} for ${missionSelectValue}`,
                 time_filter: document.getElementById('time-filter').value,
                 source_types: getCheckedSources(),
                 tech_mode: document.getElementById('tech-mode').checked,
-                mission: document.getElementById('mission-select').value
+                mission: missionSelectValue
             };
 
             scanController = new AbortController();
