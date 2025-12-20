@@ -6,3 +6,10 @@ openai
 python-dotenv
 httpx
 beautifulsoup4
+slack-bolt
+slack-sdk
+supabase
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-generativeai
